@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Farm Dashboard - Integrasi IoT</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Chart.js for Smart Collar charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Load FontAwesome untuk Ikon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Load Google Fonts (Inter) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside class="w-64 bg-green-800 text-white flex flex-col shadow-xl z-20">
+        <div class="p-6 flex items-center justify-center border-b border-green-700">
+            <i class="fa-solid fa-leaf text-2xl mr-3 text-green-300"></i>
+            <h1 class="text-xl font-bold tracking-wider">SMART FARM</h1>
+        </div>
+        
+        <nav class="flex-1 px-4 py-6 space-y-2">
+            <button onclick="switchTab('dashboard')" class="nav-btn w-full flex items-center px-4 py-3 bg-green-700 rounded-lg text-left transition-colors">
+                <i class="fa-solid fa-house w-6"></i>
+                <span class="font-medium">Dashboard Utama</span>
+            </button>
+            <button onclick="switchTab('collar')" class="nav-btn w-full flex items-center px-4 py-3 hover:bg-green-700 rounded-lg text-left transition-colors text-green-100">
+                <i class="fa-solid fa-cow w-6"></i>
+                <span class="font-medium">Smart Collar</span>
+            </button>
+            <button onclick="switchTab('kandang')" class="nav-btn w-full flex items-center px-4 py-3 hover:bg-green-700 rounded-lg text-left transition-colors text-green-100">
+                <i class="fa-solid fa-temperature-half w-6"></i>
+                <span class="font-medium">Moo-nitoring Kandang</span>
+            </button>
+            <button onclick="switchTab('feeding')" class="nav-btn w-full flex items-center px-4 py-3 hover:bg-green-700 rounded-lg text-left transition-colors text-green-100">
+                <i class="fa-solid fa-wheat-awn w-6"></i>
+                <span class="font-medium">Smart Feeding</span>
+            </button>
+            <button onclick="switchTab('gate')" class="nav-btn w-full flex items-center px-4 py-3 hover:bg-green-700 rounded-lg text-left transition-colors text-green-100">
+                <i class="fa-solid fa-door-open w-6"></i>
+                <span class="font-medium">Smart Gate</span>
+            </button>
+        </nav>
+        
+        <div class="p-4 bg-green-900 border-t border-green-700 text-sm text-center text-green-200">
+            &copy; 2026 Kelompok 1-4
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col relative h-full">
+        <!-- Topbar -->
+        <header class="bg-white shadow-sm px-8 py-4 flex justify-between items-center z-10">
+            <h2 id="page-title" class="text-2xl font-semibold text-gray-800">Dashboard Overview</h2>
+            <div class="flex items-center space-x-6 text-gray-600">
+                <div class="flex items-center bg-gray-100 px-3 py-1.5 rounded-full text-sm font-medium">
+                    <i class="fa-regular fa-clock mr-2 text-blue-500"></i>
+                    <span id="realtime-clock">12:00:00</span>
+                </div>
+                <div class="relative">
+                    <button id="notification-button" type="button" class="relative flex h-10 w-10 items-center justify-center rounded-full hover:bg-green-50 hover:text-green-700" aria-label="Buka notifikasi" aria-haspopup="true" aria-expanded="false" aria-controls="notification-panel" onclick="toggleNotifications()">
+                        <i class="fa-solid fa-bell text-xl"></i>
+                        <span id="notification-count" class="absolute -right-0.5 -top-0.5 hidden h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-xs font-semibold text-white"></span>
+                    </button>
+                    <section id="notification-panel" class="notification-panel absolute right-0 z-30 mt-2 hidden w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-gray-100 bg-white p-4 shadow-xl sm:w-96" aria-label="Notifikasi">
+                        <div class="mb-3 flex items-center justify-between">
+                            <h3 class="font-bold text-gray-800">Notifikasi</h3>
+                            <span id="notification-summary" class="text-xs text-gray-500">Tidak ada peringatan aktif</span>
+                        </div>
+                        <ul id="notification-list" class="max-h-80 space-y-2 overflow-y-auto"></ul>
+                        <p id="notification-empty" class="py-4 text-center text-sm text-gray-500">Belum ada notifikasi aktif.</p>
+                    </section>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-green-100 text-green-800 rounded-full flex items-center justify-center font-bold">
+                        A
+                    </div>
+                    <span class="font-medium text-sm hidden md:block">Admin Peternakan</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <div class="flex-1 p-8 overflow-y-auto">
+            
+            <!-- TAB: DASHBOARD -->
+            <div id="dashboard" class="tab-content active">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Card 1: Sapi -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center">
+                        <div class="w-14 h-14 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center text-2xl mr-4">
+                            <i class="fa-solid fa-cow"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Total Ternak</p>
+                            <h3 class="text-2xl font-bold text-gray-800">45 Ekor</h3>
+                            <p class="text-xs text-red-500 mt-1"><i class="fa-solid fa-triangle-exclamation"></i> 2 Terindikasi Stres</p>
+                        </div>
+                    </div>
+                    <!-- Card 2: Kandang -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center">
+                        <div class="w-14 h-14 bg-green-100 text-green-600 rounded-lg flex items-center justify-center text-2xl mr-4">
+                            <i class="fa-solid fa-temperature-arrow-up"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Status Kandang</p>
+                            <h3 class="text-2xl font-bold text-gray-800">WARNING</h3>
+                            <p class="text-xs text-yellow-600 mt-1">Suhu 32°C (Agak Panas)</p>
+                        </div>
+                    </div>
+                    <!-- Card 3: Pakan -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center">
+                        <div class="w-14 h-14 bg-yellow-100 text-yellow-600 rounded-lg flex items-center justify-center text-2xl mr-4">
+                            <i class="fa-solid fa-wheat-awn"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Stok Pakan (Silo)</p>
+                            <h3 class="text-2xl font-bold text-gray-800">75%</h3>
+                            <p class="text-xs text-green-500 mt-1">Cukup untuk 3 hari</p>
+                        </div>
+                    </div>
+                    <!-- Card 4: Gate -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center">
+                        <div class="w-14 h-14 bg-purple-100 text-purple-600 rounded-lg flex items-center justify-center text-2xl mr-4">
+                            <i class="fa-solid fa-shield-halved"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500 font-medium">Keamanan Gerbang</p>
+                            <h3 class="text-2xl font-bold text-gray-800">AMAN</h3>
+                            <p class="text-xs text-gray-500 mt-1">Akses terakhir: Sapi #12</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Integration Logs Panel -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h3 class="text-lg font-bold text-gray-800 mb-4 border-b pb-2"><i class="fa-solid fa-network-wired mr-2 text-blue-500"></i>Log Integrasi Otomatis (Real-time)</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-start bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                            <div class="text-yellow-500 mt-1 mr-3"><i class="fa-solid fa-bolt"></i></div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-800">Skenario Stres Terdeteksi (K1 → K2 & K4)</p>
+                                <p class="text-sm text-gray-600 mt-1">Smart Collar mendeteksi Sapi #05 stres. <b>Tindakan:</b> Moo-nitoring Kandang menyalakan Kipas Ventilasi. Smart Gate disarankan BUKA untuk area bebas.</p>
+                                <span class="text-xs text-gray-400 mt-2 block">10 menit yang lalu</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start bg-green-50 p-4 rounded-lg border border-green-100">
+                            <div class="text-green-500 mt-1 mr-3"><i class="fa-solid fa-check-circle"></i></div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-800">Sinergi Makan & Cahaya (K3 → K2)</p>
+                                <p class="text-sm text-gray-600 mt-1">Jadwal Smart Feeding aktif (Motor Servo Terbuka). <b>Tindakan:</b> Moo-nitoring Kandang meningkatkan intensitas Lampu LED untuk merangsang nafsu makan.</p>
+                                <span class="text-xs text-gray-400 mt-2 block">1 jam yang lalu</span>
+                            </div>
+                        </div>
+                        <div class="flex items-start bg-red-50 p-4 rounded-lg border border-red-100">
+                            <div class="text-red-500 mt-1 mr-3"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                            <div>
+                                <p class="text-sm font-semibold text-gray-800">Peringatan Penyusup (K4)</p>
+                                <p class="text-sm text-gray-600 mt-1">Smart Gate mendeteksi objek via Ultrasonik, tetapi tag RFID tidak terdaftar. <b>Tindakan:</b> Gerbang terkunci, Buzzer alarm aktif.</p>
+                                <span class="text-xs text-gray-400 mt-2 block">3 jam yang lalu</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: SMART COLLAR (K1) -->
+            <div id="collar" class="tab-content collar-dashboard -m-8 p-4">
+                <div class="w-full space-y-3">
+                    <section aria-labelledby="collar-summary-title">
+                        <div class="mb-2 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-emerald-700" aria-hidden="true"></i>
+                            <h3 id="collar-summary-title" class="text-base font-bold text-slate-800">Ringkasan Kondisi Ternak</h3>
+                        </div>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                            <article class="flex items-center gap-3 rounded-xl border border-emerald-200/80 border-l-4 border-l-emerald-600 bg-gradient-to-br from-emerald-50/90 to-teal-50/50 p-3 shadow-sm">
+                                <span class="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-600/10 text-3xl text-emerald-800"><i class="fa-solid fa-cow" aria-hidden="true"></i></span>
+                                <div><p class="text-xs font-medium text-slate-600">Total Ternak</p><p class="text-3xl font-extrabold text-slate-900">24</p></div>
+                            </article>
+                            <article class="flex items-center gap-3 rounded-xl border border-emerald-200/80 border-l-4 border-l-emerald-500 bg-gradient-to-br from-emerald-50/90 to-green-100/40 p-3 shadow-sm">
+                                <span class="flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-xl text-white shadow-sm"><i class="fa-solid fa-check" aria-hidden="true"></i></span>
+                                <div><p class="text-xs font-medium text-slate-600">Normal</p><p class="text-3xl font-extrabold text-slate-900">18</p></div>
+                            </article>
+                            <article class="flex items-center gap-3 rounded-xl border border-amber-200/80 border-l-4 border-l-amber-400 bg-gradient-to-br from-amber-50/90 to-orange-100/40 p-3 shadow-sm">
+                                <span class="flex h-11 w-11 items-center justify-center rounded-lg text-3xl text-amber-500"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+                                <div><p class="text-xs font-medium text-slate-600">Perlu Perhatian</p><p class="text-3xl font-extrabold text-slate-900">4</p></div>
+                            </article>
+                            <article class="flex items-center gap-3 rounded-xl border border-rose-200/80 border-l-4 border-l-rose-500 bg-gradient-to-br from-rose-50/90 to-red-100/40 p-3 shadow-sm">
+                                <span class="flex h-11 w-11 items-center justify-center rounded-lg text-3xl text-rose-600"><i class="fa-solid fa-bell-concierge" aria-hidden="true"></i></span>
+                                <div><p class="text-xs font-medium text-slate-600">Kritis</p><p class="text-3xl font-extrabold text-slate-900">2</p></div>
+                            </article>
+                        </div>
+                    </section>
+
+                    <section class="grid grid-cols-1 gap-3 lg:grid-cols-3" aria-label="Grafik kondisi ternak">
+                        <article class="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm lg:col-span-2">
+                            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex items-center gap-2">
+                                    <i class="fa-solid fa-chart-line text-emerald-700" aria-hidden="true"></i>
+                                    <h3 class="text-sm font-bold text-slate-800">Tren Aktivitas &amp; Stress Score</h3>
+                                </div>
+                                <div class="flex items-center gap-5 text-xs font-medium text-slate-600">
+                                    <span class="flex items-center gap-1.5"><span class="h-0.5 w-3 bg-emerald-600"></span>Aktivitas (IMU)</span>
+                                    <span class="flex items-center gap-1.5"><span class="h-0.5 w-3 bg-amber-500"></span>Stress Score</span>
+                                </div>
+                                <span class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700"><i class="fa-regular fa-clock text-slate-500" aria-hidden="true"></i>24 Jam<i class="fa-solid fa-chevron-down text-[10px] text-slate-400" aria-hidden="true"></i></span>
+                            </div>
+                            <div class="collar-line-chart">
+                                <canvas id="trendChart" role="img" aria-label="Grafik tren aktivitas dan stress score selama 24 jam"></canvas>
+                            </div>
+                        </article>
+
+                        <article class="flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                            <div class="mb-2 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-pie text-emerald-700" aria-hidden="true"></i>
+                                <h3 class="text-sm font-bold text-slate-800">Distribusi Kondisi Ternak</h3>
+                            </div>
+                            <div class="my-auto flex items-center justify-around py-2">
+                                <div class="relative flex h-40 w-40 items-center justify-center">
+                                    <canvas id="conditionChart" role="img" aria-label="Distribusi kondisi ternak: 75 persen normal, 17 persen warning, 8 persen kritis"></canvas>
+                                    <div class="pointer-events-none absolute inset-0 flex items-center justify-center"><span class="text-xl font-extrabold text-slate-800">75%</span></div>
+                                </div>
+                                <div class="space-y-3 text-xs">
+                                    <div class="flex items-start gap-2.5"><span class="mt-0.5 h-3 w-3 shrink-0 rounded-full bg-[#3b8a5a]"></span><div><p class="font-semibold text-slate-700">Normal</p><p class="font-medium text-slate-500">(18)</p></div></div>
+                                    <div class="flex items-start gap-2.5"><span class="mt-0.5 h-3 w-3 shrink-0 rounded-full bg-[#f5ab35]"></span><div><p class="font-semibold text-slate-700">Warning</p><p class="font-medium text-slate-500">(4)</p></div></div>
+                                    <div class="flex items-start gap-2.5"><span class="mt-0.5 h-3 w-3 shrink-0 rounded-full bg-[#d64541]"></span><div><p class="font-semibold text-slate-700">Critical</p><p class="font-medium text-slate-500">(2)</p></div></div>
+                                </div>
+                            </div>
+                        </article>
+                    </section>
+
+                    <section class="grid grid-cols-1 gap-3 lg:grid-cols-3" aria-label="Pemantauan ternak dan peringatan">
+                        <article class="overflow-hidden rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm lg:col-span-2">
+                            <div class="mb-4 flex items-center gap-2">
+                                <i class="fa-solid fa-cow text-emerald-700" aria-hidden="true"></i>
+                                <h3 class="text-sm font-bold text-slate-800">Pemantauan Individu Ternak</h3>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full min-w-[720px] border-collapse text-left text-xs">
+                                    <thead><tr class="border-b border-slate-200 bg-slate-50 font-semibold text-slate-600">
+                                        <th class="rounded-tl-lg px-3 py-2.5">RFID ID</th><th class="px-3 py-2.5">Aktivitas (IMU)</th><th class="px-3 py-2.5">Restlessness</th><th class="px-3 py-2.5">Stress Score</th><th class="px-3 py-2.5">Status Alarm</th><th class="px-3 py-2.5">Update Terakhir</th><th class="rounded-tr-lg px-3 py-2.5">Aksi</th>
+                                    </tr></thead>
+                                    <tbody class="divide-y divide-slate-200/70 font-medium text-slate-700">
+                                        <tr class="transition hover:bg-slate-50/80">
+                                            <td class="px-2.5 py-2 font-bold text-slate-800">COW-001</td><td class="px-2.5 py-2">Normal (45)</td><td class="px-2.5 py-2">Rendah (20)</td><td class="px-2.5 py-2"><span class="rounded-md bg-emerald-100/80 px-2.5 py-1 font-bold text-emerald-800">25</span></td>
+                                            <td class="px-2.5 py-2"><span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-2.5 py-1 font-semibold text-emerald-800"><span class="h-2 w-2 rounded-full bg-emerald-600"></span>Normal</span></td><td class="px-2.5 py-2 text-[11px] leading-tight text-slate-600"><span class="font-semibold text-slate-800">18:17:42</span><br>(12 Nov 2026)</td><td class="px-2.5 py-2"><button type="button" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100"><i class="fa-regular fa-file-lines text-blue-600"></i>Detail Profil</button></td>
+                                        </tr>
+                                        <tr class="transition hover:bg-slate-50/80">
+                                            <td class="px-2.5 py-2 font-bold text-slate-800">COW-005</td><td class="px-2.5 py-2">Tinggi (80)</td><td class="px-2.5 py-2">Tinggi (75)</td><td class="px-2.5 py-2"><span class="rounded-md bg-rose-100 px-2.5 py-1 font-bold text-rose-800">78</span></td>
+                                            <td class="px-2.5 py-2"><span class="inline-flex items-center gap-1.5 rounded-full bg-amber-100/80 px-2.5 py-1 font-semibold text-amber-800"><span class="h-2 w-2 rounded-full bg-amber-500"></span>Warning</span></td><td class="px-2.5 py-2 text-[11px] leading-tight text-slate-600"><span class="font-semibold text-slate-800">18:16:57</span><br>(12 Nov 2026)</td><td class="px-2.5 py-2"><button type="button" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100"><i class="fa-regular fa-file-lines text-blue-600"></i>Detail Profil</button></td>
+                                        </tr>
+                                        <tr class="transition hover:bg-slate-50/80">
+                                            <td class="px-2.5 py-2 font-bold text-slate-800">COW-012</td><td class="px-2.5 py-2">Normal (50)</td><td class="px-2.5 py-2">Sedang (40)</td><td class="px-2.5 py-2"><span class="rounded-md bg-amber-100/80 px-2.5 py-1 font-bold text-amber-800">46</span></td>
+                                            <td class="px-2.5 py-2"><span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/80 px-2.5 py-1 font-semibold text-emerald-800"><span class="h-2 w-2 rounded-full bg-emerald-600"></span>Normal</span></td><td class="px-2.5 py-2 text-[11px] leading-tight text-slate-600"><span class="font-semibold text-slate-800">18:15:33</span><br>(12 Nov 2026)</td><td class="px-2.5 py-2"><button type="button" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100"><i class="fa-regular fa-file-lines text-blue-600"></i>Detail Profil</button></td>
+                                        </tr>
+                                        <tr class="transition hover:bg-slate-50/80">
+                                            <td class="px-2.5 py-2 font-bold text-slate-800">COW-018</td><td class="px-2.5 py-2">Tinggi (85)</td><td class="px-2.5 py-2">Tinggi (70)</td><td class="px-2.5 py-2"><span class="rounded-md bg-rose-100 px-2.5 py-1 font-bold text-rose-800">92</span></td>
+                                            <td class="px-2.5 py-2"><span class="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-1 font-semibold text-rose-800"><span class="h-2 w-2 rounded-full bg-rose-600"></span>Critical</span></td><td class="px-2.5 py-2 text-[11px] leading-tight text-slate-600"><span class="font-semibold text-slate-800">18:14:20</span><br>(12 Nov 2026)</td><td class="px-2.5 py-2"><button type="button" class="inline-flex items-center gap-1.5 rounded-md border border-slate-300 bg-slate-50 px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-100"><i class="fa-regular fa-file-lines text-blue-600"></i>Detail Profil</button></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </article>
+
+                        <article class="flex flex-col rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
+                            <div>
+                                <div class="mb-4 flex items-center gap-2"><i class="fa-solid fa-bell text-emerald-800" aria-hidden="true"></i><h3 class="text-sm font-bold text-slate-800">Peringatan Terbaru</h3></div>
+                                <div class="space-y-2">
+                                    <div class="flex items-start gap-3 rounded-r-lg border-l-4 border-l-rose-500 bg-rose-50/40 p-2"><i class="fa-solid fa-bell-concierge mt-0.5 text-lg text-rose-600" aria-hidden="true"></i><div class="text-xs"><p class="font-bold leading-snug text-slate-800">Ternak COW-018 terdeteksi stres tinggi!</p><p class="mt-1 text-[11px] text-slate-500">12 Nov 2026 • 18:14</p></div></div>
+                                    <div class="flex items-start gap-3 rounded-r-lg border-l-4 border-l-amber-400 bg-amber-50/40 p-2"><i class="fa-solid fa-triangle-exclamation mt-0.5 text-lg text-amber-500" aria-hidden="true"></i><div class="text-xs"><p class="font-bold leading-snug text-slate-800">Ternak COW-005 menunjukkan aktivitas berlebih.</p><p class="mt-1 text-[11px] text-slate-500">12 Nov 2026 • 18:16</p></div></div>
+                                </div>
+                            </div>
+                            <button type="button" class="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-50/80 py-2 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-100/80"><span>Lihat Semua</span><i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i></button>
+                        </article>
+                    </section>
+
+                    <aside class="flex items-center gap-2 rounded-xl border border-blue-200/80 bg-blue-50/90 px-3 py-2 text-xs text-slate-700 shadow-sm">
+                        <i class="fa-solid fa-circle-info text-base text-blue-600" aria-hidden="true"></i>
+                        <p>Data sensor <span class="font-semibold">MPU6050</span> dipantau secara real-time dan buzzer akan aktif jika <span class="font-semibold">Stress Score melebihi 60</span>.</p>
+                    </aside>
+                </div>
+            </div>
+
+            <!-- TAB: MOO-NITORING KANDANG (K2) -->
+            <div id="kandang" class="tab-content">
+                <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-wide text-green-700">Smart Farm / K2</p>
+                        <h3 class="text-2xl font-bold text-gray-800">Moo-nitoring Kandang</h3>
+                        <p class="mt-1 text-sm text-gray-500">Pantau kondisi udara kandang dan perangkat secara terpusat.</p>
+                    </div>
+                    <span class="inline-flex items-center gap-2 self-start rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700 sm:self-auto">
+                        <span class="h-2 w-2 rounded-full bg-green-500"></span>
+                        Data simulasi
+                    </span>
+                </div>
+
+                <div class="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
+                    <section class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm" aria-labelledby="comfort-title">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 id="comfort-title" class="font-bold text-gray-800">Comfort Score</h4>
+                                <p class="mt-1 text-xs text-gray-500">Ringkasan kondisi lingkungan</p>
+                            </div>
+                            <i class="fa-solid fa-heart-pulse text-xl text-green-600"></i>
+                        </div>
+                        <div class="mt-5 flex items-end gap-2">
+                            <span id="comfort-score" class="text-4xl font-bold text-gray-800">72</span>
+                            <span class="mb-1 text-sm text-gray-500">/ 100</span>
+                            <span id="comfort-status" class="mb-1 ml-auto rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700">Perlu perhatian</span>
+                        </div>
+                        <div class="mt-3 h-2.5 w-full rounded-full bg-gray-100"><div id="comfort-bar" class="h-2.5 rounded-full bg-yellow-400 comfort-progress"></div></div>
+                        <p id="comfort-description" class="mt-3 text-xs leading-relaxed text-gray-500">Skor dihitung otomatis berdasarkan status sensor kandang.</p>
+                    </section>
+
+                    <section class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm xl:col-span-2" aria-labelledby="actuator-title">
+                        <div class="mb-4 flex items-start justify-between gap-3">
+                            <div>
+                                <h4 id="actuator-title" class="font-bold text-gray-800">Kontrol Perangkat</h4>
+                                <p class="mt-1 text-xs text-gray-500">Nyalakan atau matikan perangkat kandang.</p>
+                            </div>
+                            <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-700">Mode simulasi</span>
+                        </div>
+                        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <article class="rounded-lg border border-gray-100 p-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600"><i class="fa-solid fa-fan"></i></span>
+                                    <div><p class="font-semibold text-gray-700">Kipas</p><p class="text-xs text-gray-400">Ventilasi kandang</p></div>
+                                </div>
+                                <button id="fan-toggle" type="button" class="actuator-toggle actuator-on mt-4 w-full rounded-lg px-3 py-2 text-sm font-semibold" aria-pressed="true" onclick="toggleActuator('fan')">Matikan kipas</button>
+                            </article>
+                            <article class="rounded-lg border border-gray-100 p-4">
+                                <div class="flex items-center gap-3">
+                                    <span class="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-50 text-yellow-600"><i class="fa-regular fa-lightbulb"></i></span>
+                                    <div><p class="font-semibold text-gray-700">Lampu LED</p><p class="text-xs text-gray-400">Penerangan kandang</p></div>
+                                </div>
+                                <button id="led-toggle" type="button" class="actuator-toggle actuator-off mt-4 w-full rounded-lg px-3 py-2 text-sm font-semibold" aria-pressed="false" onclick="toggleActuator('led')">Nyalakan LED</button>
+                            </article>
+                        </div>
+                        <p class="mt-3 text-xs text-gray-400">Kontrol hanya memperbarui tampilan demo dan belum terhubung ke perangkat IoT.</p>
+                    </section>
+                </div>
+
+                <section class="mb-6 rounded-xl border border-green-100 bg-green-50 p-5 shadow-sm" aria-labelledby="cleaning-title">
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-green-700 shadow-sm"><i class="fa-solid fa-broom"></i></span>
+                        <div>
+                            <h4 id="cleaning-title" class="font-bold text-gray-800">Rekomendasi Pembersihan Kandang</h4>
+                            <p id="cleaning-recommendation" class="mt-2 text-sm leading-relaxed text-gray-700">Memeriksa rekomendasi berdasarkan kondisi sensor...</p>
+                            <p id="cleaning-status" class="mt-3 text-xs font-medium text-green-800"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="mb-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm" aria-labelledby="condition-title">
+                    <div class="mb-4 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h4 id="condition-title" class="font-bold text-gray-800">Pemantauan Kondisi Kandang</h4>
+                            <p id="condition-summary" class="mt-1 text-xs text-gray-500">Memeriksa kondisi sensor...</p>
+                        </div>
+                        <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">Prioritas bantuan</span>
+                    </div>
+                    <div id="sensor-condition-list" class="grid grid-cols-1 gap-3 md:grid-cols-2"></div>
+                </section>
+
+                <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+                    <article class="sensor-card sensor-card--temperature rounded-xl border border-gray-100 border-l-4 bg-white p-5 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div><p class="text-sm font-semibold text-gray-600">Suhu</p><p class="mt-1 text-xs text-gray-400">Sensor DHT22</p></div>
+                            <i class="fa-solid fa-temperature-half text-xl text-orange-500"></i>
+                        </div>
+                        <p class="mt-4 text-2xl font-bold text-gray-800"><span id="sensor-value-temperature">32.5</span> <span class="text-sm font-medium">°C</span></p>
+                        <p id="sensor-status-temperature" class="sensor-status mt-2 text-xs font-medium"></p>
+                        <p class="mt-2 text-xs leading-relaxed text-gray-500">Suhu tinggi dapat membuat ternak kepanasan. Tingkatkan sirkulasi udara.</p>
+                    </article>
+                    <article class="sensor-card sensor-card--humidity rounded-xl border border-gray-100 border-l-4 bg-white p-5 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div><p class="text-sm font-semibold text-gray-600">Kelembapan</p><p class="mt-1 text-xs text-gray-400">Sensor DHT22</p></div>
+                            <i class="fa-solid fa-droplet text-xl text-blue-500"></i>
+                        </div>
+                        <p class="mt-4 text-2xl font-bold text-gray-800"><span id="sensor-value-humidity">65</span> <span class="text-sm font-medium">%</span></p>
+                        <p id="sensor-status-humidity" class="sensor-status mt-2 text-xs font-medium"></p>
+                        <p class="mt-2 text-xs leading-relaxed text-gray-500">Kelembapan terjaga membantu mengurangi kondisi kandang terlalu kering atau lembap.</p>
+                    </article>
+                    <article class="sensor-card sensor-card--nh3 rounded-xl border border-gray-100 border-l-4 bg-white p-5 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div><p class="text-sm font-semibold text-gray-600">Amonia (NH₃)</p><p class="mt-1 text-xs text-gray-400">Sensor gas MQ-137</p></div>
+                            <i class="fa-solid fa-wind text-xl text-green-600"></i>
+                        </div>
+                        <p class="mt-4 text-2xl font-bold text-gray-800"><span id="sensor-value-nh3">18</span> <span class="text-sm font-medium">ppm</span></p>
+                        <p id="sensor-status-nh3" class="sensor-status mt-2 text-xs font-medium"></p>
+                        <p class="mt-2 text-xs leading-relaxed text-gray-500">Gas amonia dapat meningkat dari kotoran dan alas kandang yang basah.</p>
+                    </article>
+                    <article class="sensor-card sensor-card--co2 rounded-xl border border-gray-100 border-l-4 bg-white p-5 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div><p class="text-sm font-semibold text-gray-600">Karbon Dioksida (CO₂)</p><p class="mt-1 text-xs text-gray-400">Sensor CO₂</p></div>
+                            <i class="fa-solid fa-cloud text-xl text-purple-600"></i>
+                        </div>
+                        <p class="mt-4 text-2xl font-bold text-gray-800"><span id="sensor-value-co2">950</span> <span class="text-sm font-medium">ppm</span></p>
+                        <p id="sensor-status-co2" class="sensor-status mt-2 text-xs font-medium"></p>
+                        <p class="mt-2 text-xs leading-relaxed text-gray-500">Pantau CO₂ untuk mengetahui kecukupan pertukaran udara di dalam kandang.</p>
+                    </article>
+                    <article class="sensor-card sensor-card--sound rounded-xl border border-gray-100 border-l-4 bg-white p-5 shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <div><p class="text-sm font-semibold text-gray-600">Suara</p><p class="mt-1 text-xs text-gray-400">Sensor suara KY-038</p></div>
+                            <i class="fa-solid fa-volume-high text-xl text-pink-600"></i>
+                        </div>
+                        <p class="mt-4 text-2xl font-bold text-gray-800"><span id="sensor-value-sound">50</span> <span class="text-sm font-medium">dB</span></p>
+                        <p id="sensor-status-sound" class="sensor-status mt-2 text-xs font-medium"></p>
+                        <p class="mt-2 text-xs leading-relaxed text-gray-500">Suara yang meningkat terus-menerus dapat menjadi tanda gangguan atau kegelisahan.</p>
+                    </article>
+                </div>
+
+                <section class="mb-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="sensor-chart-title">
+                    <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h4 id="sensor-chart-title" class="text-lg font-bold text-gray-800">Grafik Sensor Kandang</h4>
+                            <p id="chart-description" class="mt-1 text-xs text-gray-500">Perbandingan indeks relatif tiap sensor selama 6 jam terakhir.</p>
+                        </div>
+                        <label class="flex items-center gap-2 text-sm font-medium text-gray-600">
+                            Tampilkan
+                            <select id="sensor-filter" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+                                <option value="all">Semua sensor</option>
+                                <option value="temperature">Suhu</option>
+                                <option value="humidity">Kelembapan</option>
+                                <option value="nh3">Amonia (NH₃)</option>
+                                <option value="co2">Karbon Dioksida (CO₂)</option>
+                                <option value="sound">Suara</option>
+                            </select>
+                        </label>
+                    </div>
+                    <div class="mb-3 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+                        <label for="period-filter" class="font-medium">Rentang waktu</label>
+                        <select id="period-filter" class="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-200">
+                            <option value="day">Hari ini</option>
+                            <option value="week">Seminggu</option>
+                            <option value="month">Sebulan</option>
+                            <option value="year">Setahun</option>
+                        </select>
+                    </div>
+                    <div class="chart-scroll">
+                        <svg id="sensor-chart" class="sensor-chart" viewBox="0 0 800 300" role="img" aria-label="Grafik riwayat pembacaan sensor kandang"></svg>
+                    </div>
+                    <div id="sensor-legend" class="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-xs text-gray-600" aria-label="Legenda sensor"></div>
+                    <p class="mt-3 text-xs text-gray-400">Grafik memakai data simulasi deterministik dengan variasi bacaan, bukan data sensor langsung atau tren AI.</p>
+                </section>
+
+            </div>
+
+            <!-- TAB: SMART FEEDING (K3) -->
+            <div id="feeding" class="tab-content space-y-4">
+                <section class="rounded-xl border border-green-100 bg-gradient-to-r from-green-50 to-white p-4 shadow-sm sm:flex sm:items-center sm:justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-wider text-green-700">Smart Farm / K3</p>
+                        <h3 class="mt-1 text-xl font-bold text-gray-800">Smart Feeder Station</h3>
+                        <p class="mt-1 text-sm text-gray-500">Sistem pakan otomatis ESP32 &amp; RTC DS3231 · Kandang Sapi Blok A</p>
+                    </div>
+                    <div class="mt-3 flex flex-wrap items-center gap-2 sm:mt-0">
+                        <span class="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+                            <span class="h-2 w-2 rounded-full bg-amber-400"></span>SIMULATION MODE
+                        </span>
+                        <span class="rounded-full bg-white px-3 py-1.5 text-xs font-medium text-gray-600 ring-1 ring-gray-200">ESP32 &amp; RTC DS3231</span>
+                    </div>
+                </section>
+
+                <div class="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                    <div class="space-y-4 xl:col-span-7">
+                        <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" aria-labelledby="feeding-schedule-title">
+                            <div class="flex flex-wrap items-start justify-between gap-3 border-b border-gray-100 px-4 py-3">
+                                <div>
+                                    <h4 id="feeding-schedule-title" class="flex items-center gap-2 font-bold text-gray-800">
+                                        <i class="fa-regular fa-clock text-green-700" aria-hidden="true"></i> Jadwal Pemberian Pakan Sapi Otomatis
+                                    </h4>
+                                    <p class="mt-1 text-xs text-gray-500">Siklus harian terjadwal dan dikontrol oleh modul RTC DS3231.</p>
+                                </div>
+                                <div class="flex gap-2">
+                                    <span class="rounded-md bg-gray-100 px-2 py-1 text-[10px] font-semibold text-gray-600">4 Siklus Pakan</span>
+                                    <span class="rounded-md bg-cyan-50 px-2 py-1 text-[10px] font-semibold text-cyan-700">Siklus 24 Jam</span>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 xl:grid-cols-4">
+                                <article class="rounded-lg border border-gray-200 bg-amber-50/40 p-3">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="text-xs font-semibold text-gray-700"><i class="fa-solid fa-sun mr-1 text-amber-500" aria-hidden="true"></i>Pakan Pagi</span>
+                                        <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-500">MENUNGGU</span>
+                                    </div>
+                                    <p class="mt-2 font-mono text-2xl font-bold text-gray-800">06:00 <span class="text-[10px] font-sans font-medium text-gray-500">WIB</span></p>
+                                    <p class="mt-1 text-[11px] text-gray-600">Silase &amp; Konsentrat Pagi</p>
+                                    <div class="mt-2 flex flex-wrap gap-1 text-[9px] text-gray-600"><span class="rounded bg-white px-1.5 py-1">3.5 kg</span><span class="rounded bg-white px-1.5 py-1">Durasi 5s</span><span class="rounded bg-white px-1.5 py-1">Palungan A</span></div>
+                                    <p class="mt-2 border-t border-gray-100 pt-2 text-[9px] text-gray-400">Belum dijalankan hari ini</p>
+                                </article>
+                                <article class="rounded-lg border border-gray-200 bg-green-50/40 p-3">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="text-xs font-semibold text-gray-700"><i class="fa-solid fa-leaf mr-1 text-green-600" aria-hidden="true"></i>Pakan Siang</span>
+                                        <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-500">MENUNGGU</span>
+                                    </div>
+                                    <p class="mt-2 font-mono text-2xl font-bold text-gray-800">12:00 <span class="text-[10px] font-sans font-medium text-gray-500">WIB</span></p>
+                                    <p class="mt-1 text-[11px] text-gray-600">Rumput Gajah Segar</p>
+                                    <div class="mt-2 flex flex-wrap gap-1 text-[9px] text-gray-600"><span class="rounded bg-white px-1.5 py-1">5.0 kg</span><span class="rounded bg-white px-1.5 py-1">Durasi 6s</span><span class="rounded bg-white px-1.5 py-1">Palungan A</span></div>
+                                    <p class="mt-2 border-t border-gray-100 pt-2 text-[9px] text-gray-400">Belum dijalankan hari ini</p>
+                                </article>
+                                <article class="rounded-lg border border-gray-200 bg-yellow-50/40 p-3">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="text-xs font-semibold text-gray-700"><i class="fa-solid fa-sun mr-1 text-yellow-500" aria-hidden="true"></i>Pakan Sore Awal</span>
+                                        <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-500">MENUNGGU</span>
+                                    </div>
+                                    <p class="mt-2 font-mono text-2xl font-bold text-gray-800">15:15 <span class="text-[10px] font-sans font-medium text-gray-500">WIB</span></p>
+                                    <p class="mt-1 text-[11px] text-gray-600">Hijauan &amp; Suplemen</p>
+                                    <div class="mt-2 flex flex-wrap gap-1 text-[9px] text-gray-600"><span class="rounded bg-white px-1.5 py-1">2.5 kg</span><span class="rounded bg-white px-1.5 py-1">Durasi 4s</span><span class="rounded bg-white px-1.5 py-1">Palungan A</span></div>
+                                    <p class="mt-2 border-t border-gray-100 pt-2 text-[9px] text-gray-400">Belum dijalankan hari ini</p>
+                                </article>
+                                <article class="rounded-lg border border-gray-200 bg-blue-50/40 p-3">
+                                    <div class="flex items-center justify-between gap-1">
+                                        <span class="text-xs font-semibold text-gray-700"><i class="fa-regular fa-moon mr-1 text-blue-500" aria-hidden="true"></i>Pakan Sore</span>
+                                        <span class="rounded bg-gray-100 px-1.5 py-0.5 text-[9px] font-bold text-gray-500">MENUNGGU</span>
+                                    </div>
+                                    <p class="mt-2 font-mono text-2xl font-bold text-gray-800">18:00 <span class="text-[10px] font-sans font-medium text-gray-500">WIB</span></p>
+                                    <p class="mt-1 text-[11px] text-gray-600">Konsentrat &amp; Mineral</p>
+                                    <div class="mt-2 flex flex-wrap gap-1 text-[9px] text-gray-600"><span class="rounded bg-white px-1.5 py-1">3.5 kg</span><span class="rounded bg-white px-1.5 py-1">Durasi 5s</span><span class="rounded bg-white px-1.5 py-1">Palungan A</span></div>
+                                    <p class="mt-2 border-t border-gray-100 pt-2 text-[9px] text-gray-400">Belum dijalankan hari ini</p>
+                                </article>
+                            </div>
+                        </section>
+
+                        <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" aria-labelledby="rtc-title">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+                                <div>
+                                    <h4 id="rtc-title" class="font-bold text-gray-800"><i class="fa-regular fa-clock mr-2 text-green-700" aria-hidden="true"></i>Waktu Jam RTC DS3231</h4>
+                                    <p class="mt-1 text-xs text-gray-500">Master clock kandang · sinkronisasi jadwal pakan</p>
+                                </div>
+                                <span class="rounded-md bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700">Menunggu data RTC</span>
+                            </div>
+                            <div class="grid grid-cols-1 gap-2 p-3 sm:grid-cols-3">
+                                <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                    <p class="text-[10px] font-semibold uppercase text-gray-500">Tanggal RTC</p>
+                                    <p class="mt-1 font-mono text-lg font-bold text-gray-700">--/--/----</p>
+                                    <p class="mt-1 text-[10px] text-gray-400">Belum ada data masuk</p>
+                                </div>
+                                <div class="rounded-lg border border-green-100 bg-green-50/50 p-3">
+                                    <p class="text-[10px] font-semibold uppercase text-gray-500">Waktu RTC Aktif (24 Jam)</p>
+                                    <p class="mt-1 font-mono text-lg font-bold text-green-700">--:--:--</p>
+                                    <p class="mt-1 text-[10px] text-gray-400">Sinkronisasi komputer (WIB)</p>
+                                </div>
+                                <div class="rounded-lg border border-gray-200 bg-gray-50 p-3">
+                                    <p class="text-[10px] font-semibold uppercase text-gray-500">Timestamp Serial ESP32</p>
+                                    <p class="mt-1 font-mono text-lg font-bold text-gray-500">--:--:--.---</p>
+                                    <p class="mt-1 text-[10px] text-gray-400">Waktu kirim port serial MCU</p>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section class="overflow-hidden rounded-xl border border-gray-800 bg-gray-950 shadow-sm" aria-labelledby="telemetry-title">
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-gray-800 px-4 py-3">
+                                <div>
+                                    <h4 id="telemetry-title" class="font-mono text-sm font-bold text-green-300"><i class="fa-solid fa-terminal mr-2" aria-hidden="true"></i>Serial Telemetry Stream — Kandang Sapi</h4>
+                                    <span class="mt-1 inline-block rounded bg-green-950 px-2 py-0.5 font-mono text-[10px] text-green-300">0 entri</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <label class="flex items-center gap-1.5 text-[10px] text-gray-300"><input type="checkbox" checked class="accent-green-500">Auto-Scroll</label>
+                                    <button type="button" class="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-800">Salin Log</button>
+                                    <button type="button" class="rounded border border-gray-700 px-2 py-1 text-[10px] text-gray-300 hover:bg-gray-800">Bersihkan</button>
+                                </div>
+                            </div>
+                            <div class="border-b border-gray-800 px-4 py-2 font-mono text-[9px] text-gray-500">FORMAT: Tanggal: &lt;dd/mm/yyyy&gt; | Waktu: &lt;HH:mm:ss&gt; <span class="float-right">Baud: 115200</span></div>
+                            <div class="flex min-h-48 flex-col items-center justify-center px-4 py-8 text-center font-mono">
+                                <span class="text-3xl" aria-hidden="true">🐄📡</span>
+                                <p class="mt-3 text-xs text-gray-400">Menunggu data telemetri serial ESP32 / RTC...</p>
+                                <p class="mt-1 text-[10px] text-gray-600">Pastikan perangkat terhubung untuk menerima data.</p>
+                            </div>
+                        </section>
+                    </div>
+
+                    <div class="space-y-4 xl:col-span-5">
+                        <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" aria-labelledby="feeder-control-title">
+                            <div class="border-b border-gray-100 px-4 py-3">
+                                <h4 id="feeder-control-title" class="font-bold text-gray-800"><i class="fa-solid fa-droplet mr-2 text-green-700" aria-hidden="true"></i>Dispenser Pakan &amp; Pompa Air Sapi</h4>
+                                <p class="mt-1 text-xs text-gray-500">Kontrol motor dispenser palungan dan pompa air minum.</p>
+                            </div>
+                            <div class="space-y-3 p-3">
+                                <div class="overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                                    <div class="flex items-center justify-between gap-2 border-b border-gray-200 px-3 py-2">
+                                        <span class="text-xs font-semibold text-gray-700"><i class="fa-solid fa-bowl-food mr-1 text-green-700" aria-hidden="true"></i>Palungan &amp; Bak Minum (Blok A)</span>
+                                        <span class="rounded-full bg-white px-2 py-1 text-[9px] font-medium text-gray-500">Standby / Palungan Siap</span>
+                                    </div>
+                                    <div class="px-3 py-2">
+                                        <svg class="h-20 w-full" viewBox="0 0 280 80" role="img" aria-label="Ilustrasi palungan dan bak minum sapi">
+                                            <line x1="10" y1="72" x2="270" y2="72" stroke="#d6d3d1" stroke-width="2" />
+                                            <g transform="translate(18 22)" fill="white" stroke="#334155" stroke-width="1.5">
+                                                <path d="M12 28C10 20 18 10 26 12C32 14 36 20 38 28Z" />
+                                                <circle cx="36" cy="14" r="9" />
+                                                <ellipse cx="22" cy="18" rx="4" ry="5" fill="#334155" />
+                                                <ellipse cx="34" cy="13" rx="1.2" ry="1.8" fill="#334155" />
+                                                <path d="M38 12C41 12 43 14 43 17C43 20 40 21 38 20" fill="#fce7f3" />
+                                            </g>
+                                            <rect x="75" y="58" width="8" height="14" rx="2" fill="#78716c" />
+                                            <rect x="235" y="58" width="8" height="14" rx="2" fill="#78716c" />
+                                            <path d="M68 34H250L240 60H78L68 34Z" fill="#e2e8f0" stroke="#475569" stroke-width="2" />
+                                            <path d="M72 44H246L238 58H80L72 44Z" fill="#67e8f9" opacity=".8" />
+                                            <path d="M110 8V24H125M190 8V24H175" stroke="#94a3b8" stroke-width="4" stroke-linecap="round" />
+                                            <circle cx="175" cy="40" r="2.5" fill="#d97706" /><circle cx="182" cy="42" r="2" fill="#b45309" />
+                                            <path d="M50 72L53 64L56 72M255 72L258 63L262 72" fill="none" stroke="#16a34a" stroke-width="1.5" />
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="rounded-lg bg-gray-50 px-3 py-2 text-[10px] text-gray-500"><i class="fa-solid fa-circle-info mr-1 text-green-700" aria-hidden="true"></i>Siap menerima perintah kontrol palungan sapi.</div>
+
+                                <article class="rounded-lg border border-gray-200 p-3">
+                                    <div class="mb-2 flex items-center justify-between gap-2">
+                                        <h5 class="text-xs font-bold text-gray-800">🌾 PUMP 1 — Dispenser Pakan</h5>
+                                        <span class="rounded bg-green-50 px-2 py-1 text-[9px] font-semibold text-green-700">Relay GPIO 19</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 rounded-lg bg-indigo-50 p-3">
+                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-lg">🌾</span>
+                                        <div><p class="text-[9px] font-semibold text-indigo-700">STATUS PUMP 1 (PAKAN KONSENTRAT)</p><p class="font-mono text-sm font-bold text-gray-800">UNKNOWN</p><p class="text-[10px] text-gray-500">Motor dispenser belum aktif.</p></div>
+                                    </div>
+                                    <div class="mt-2 grid grid-cols-2 gap-2">
+                                        <button type="button" class="rounded-lg bg-green-700 px-2 py-3 text-xs font-bold text-white hover:bg-green-800">PUMP 1 ON<span class="mt-1 block text-[9px] font-normal">Putar Motor Pakan</span></button>
+                                        <button type="button" class="rounded-lg bg-gray-700 px-2 py-3 text-xs font-bold text-white hover:bg-gray-800">PUMP 1 OFF<span class="mt-1 block text-[9px] font-normal">Hentikan Motor Pakan</span></button>
+                                    </div>
+                                </article>
+
+                                <article class="rounded-lg border border-gray-200 p-3">
+                                    <div class="mb-2 flex items-center justify-between gap-2">
+                                        <h5 class="text-xs font-bold text-gray-800">💧 PUMP 2 — Pompa Air Minum</h5>
+                                        <span class="rounded bg-blue-50 px-2 py-1 text-[9px] font-semibold text-blue-700">Relay GPIO 18</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 rounded-lg bg-indigo-50 p-3">
+                                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-lg">💧</span>
+                                        <div><p class="text-[9px] font-semibold text-indigo-700">STATUS PUMP 2 (AIR MINUM PALUNGAN)</p><p class="font-mono text-sm font-bold text-gray-800">UNKNOWN</p><p class="text-[10px] text-gray-500">Pompa sirkulasi belum aktif.</p></div>
+                                    </div>
+                                    <div class="mt-2 grid grid-cols-2 gap-2">
+                                        <button type="button" class="rounded-lg bg-blue-600 px-2 py-3 text-xs font-bold text-white hover:bg-blue-700">PUMP 2 ON<span class="mt-1 block text-[9px] font-normal">Alirkan Air Minum</span></button>
+                                        <button type="button" class="rounded-lg bg-gray-700 px-2 py-3 text-xs font-bold text-white hover:bg-gray-800">PUMP 2 OFF<span class="mt-1 block text-[9px] font-normal">Hentikan Aliran Air</span></button>
+                                    </div>
+                                </article>
+                                <p class="font-mono text-[9px] leading-relaxed text-gray-500">Kontrol Pump 1 (Pakan) &amp; Pump 2 (Air) menggunakan relay GPIO 19 dan GPIO 18.</p>
+                            </div>
+                        </section>
+
+                        <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm" aria-labelledby="feeding-activity-title">
+                            <div class="flex items-center justify-between gap-2 border-b border-gray-100 px-4 py-3">
+                                <div>
+                                    <h4 id="feeding-activity-title" class="font-bold text-gray-800"><i class="fa-regular fa-clipboard mr-2 text-green-700" aria-hidden="true"></i>Riwayat Kontrol Palungan</h4>
+                                    <p class="mt-1 text-xs text-gray-500">Activity log perintah pakan dan pompa.</p>
+                                </div>
+                                <button type="button" class="rounded border border-gray-200 px-2 py-1 text-[10px] font-medium text-gray-600 hover:bg-gray-50">Bersihkan</button>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-left text-[10px]">
+                                    <thead class="bg-amber-50 text-[9px] uppercase text-gray-500">
+                                        <tr><th class="px-3 py-2 font-semibold">Waktu</th><th class="px-3 py-2 font-semibold">Perintah</th><th class="px-3 py-2 font-semibold">Hasil</th><th class="px-3 py-2 font-semibold">Latensi</th></tr>
+                                    </thead>
+                                    <tbody><tr><td colspan="4" class="px-3 py-6 text-center text-gray-400">Belum ada perintah kontrol yang dikirim pada sesi ini.</td></tr></tbody>
+                                </table>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB: SMART GATE (K4) -->
+            <div id="gate" class="tab-content">
+                <div class="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                        <p class="text-sm font-semibold uppercase tracking-wide text-green-700">Smart Farm / K4</p>
+                        <h3 class="text-2xl font-bold text-gray-800">Keamanan &amp; Akses (Smart Gate)</h3>
+                        <p class="mt-1 text-sm text-gray-500">Access control RFID dan internal surveillance kamera AI.</p>
+                    </div>
+                    <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">Mode simulasi</span>
+                </div>
+
+                <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <section class="rounded-xl border border-gray-100 bg-white p-5 shadow-sm" aria-labelledby="gate-access-title">
+                        <div class="mb-5 flex items-center justify-between border-b pb-3">
+                            <h4 id="gate-access-title" class="font-bold text-gray-800">Zona 1 · Status Gerbang Pintar</h4>
+                            <span id="gate-connection-status" class="device-status device-status--online">ONLINE</span>
+                        </div>
+                        <div id="gate-state-panel" class="gate-state-panel gate-state-panel--locked rounded-xl p-5 text-center">
+                            <div class="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-full bg-white text-green-700 shadow-sm">
+                                <i id="gate-state-icon" class="fa-solid fa-door-closed text-4xl"></i>
+                            </div>
+                            <h5 id="gate-state-title" class="text-lg font-bold text-green-800">GERBANG TERKUNCI</h5>
+                            <p id="gate-state-description" class="mt-2 text-sm text-green-900">RFID Reader MFRC522 aktif. Gerbang terkunci.</p>
+                        </div>
+                        <div class="my-4 grid grid-cols-2 gap-3 text-xs">
+                            <div class="rounded-lg bg-gray-50 p-3"><span class="block text-gray-500">RFID MFRC522</span><strong id="rfid-reader-status" class="mt-1 block text-green-700">ONLINE</strong></div>
+                            <div class="rounded-lg bg-gray-50 p-3"><span class="block text-gray-500">Servo ESP32</span><strong id="servo-device-status" class="mt-1 block text-green-700">ONLINE</strong></div>
+                        </div>
+                        <button id="gate-toggle-button" type="button" class="w-full rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-green-800" onclick="toggleManualGate()">Buka Manual (Servo)</button>
+                    </section>
+
+                    <section id="operator-alert-card" class="operator-alert-card operator-alert-card--safe rounded-xl border border-gray-100 bg-white p-5 shadow-sm lg:col-span-2" aria-labelledby="operator-alert-title">
+                        <div class="mb-5 flex items-center justify-between border-b pb-3">
+                            <div>
+                                <h4 id="operator-alert-title" class="font-bold text-gray-800">Operator Room Alert</h4>
+                                <p class="mt-1 text-xs text-gray-500">Indikator alarm ruang operator · Zona 1</p>
+                            </div>
+                            <span id="operator-alarm-indicator" class="operator-alarm-indicator operator-alarm-indicator--safe">
+                                <span class="operator-alarm-light"></span>
+                                <span id="operator-alarm-label">ALARM OFF / AMAN</span>
+                            </span>
+                        </div>
+                        <div class="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-4">
+                                <span class="text-sm font-medium text-gray-700"><i class="fa-solid fa-bell mr-2 text-gray-500"></i>Buzzer Operator</span>
+                                <strong id="operator-buzzer-state" class="text-xs text-green-700">OFF</strong>
+                            </div>
+                            <div class="flex items-center justify-between rounded-lg bg-gray-50 p-4">
+                                <span class="text-sm font-medium text-gray-700"><i class="fa-regular fa-lightbulb mr-2 text-gray-500"></i>LED Operator</span>
+                                <strong id="operator-led-state" class="text-xs text-green-700">HIJAU / AMAN</strong>
+                            </div>
+                        </div>
+                        <div class="flex flex-wrap gap-3">
+                            <button id="test-buzzer-button" type="button" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-100" onclick="testOperatorBuzzer()"><i class="fa-solid fa-bell mr-2"></i>Tes Buzzer</button>
+                            <button id="clear-alarm-button" type="button" class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100" onclick="clearOperatorAlarm()"><i class="fa-solid fa-circle-check mr-2"></i>Matikan Alarm (CLEAR)</button>
+                        </div>
+                        <p id="operator-alert-message" class="mt-4 text-xs text-gray-500">Buzzer dan LED operator dalam kondisi aman.</p>
+                    </section>
+                </div>
+
+                <section class="mb-6 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-6" aria-labelledby="surveillance-title">
+                    <div class="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <h4 id="surveillance-title" class="text-lg font-bold text-gray-800">Zona 2 · Internal Surveillance — Kamera AI YOLOv8</h4>
+                            <p class="mt-1 text-sm text-gray-500">Pemantauan visual internal kandang dan klasifikasi aktivitas.</p>
+                        </div>
+                        <span class="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800">AI CAMERA · DEMO</span>
+                    </div>
+                    <div class="grid grid-cols-1 gap-5 xl:grid-cols-3">
+                        <div class="xl:col-span-2">
+                            <div class="camera-preview">
+                                <img id="camera-stream" class="camera-stream hidden" alt="Stream CCTV internal kandang">
+                                <div id="camera-fallback" class="camera-fallback">
+                                    <span class="camera-fallback-icon"><i class="fa-solid fa-video-slash"></i></span>
+                                    <strong>Stream kamera belum aktif</strong>
+                                    <span>Preview CCTV akan tampil di sini saat URL stream tersedia.</span>
+                                </div>
+                                <span id="ai-status-badge" class="ai-status-badge ai-status-badge--safe">KANDANG AMAN</span>
+                            </div>
+                            <p id="camera-stream-status" class="mt-2 text-xs text-gray-500">Kamera internal offline · menampilkan placeholder.</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <article class="camera-stat-card border-l-4 border-green-500">
+                                <span class="camera-stat-icon text-green-600"><i class="fa-solid fa-user-check"></i></span>
+                                <p class="camera-stat-label">Peternak Sah</p>
+                                <p class="camera-stat-description">Topi Koboy</p>
+                                <strong id="camera-count-authorized" class="camera-stat-value">1</strong>
+                            </article>
+                            <article class="camera-stat-card border-l-4 border-red-500">
+                                <span class="camera-stat-icon text-red-600"><i class="fa-solid fa-user-slash"></i></span>
+                                <p class="camera-stat-label">Penyusup</p>
+                                <p class="camera-stat-description">Tanpa Topi</p>
+                                <strong id="camera-count-intruder" class="camera-stat-value">0</strong>
+                            </article>
+                            <article class="camera-stat-card border-l-4 border-blue-500">
+                                <span class="camera-stat-icon text-blue-600"><i class="fa-solid fa-cow"></i></span>
+                                <p class="camera-stat-label">Sapi Ternak</p>
+                                <p class="camera-stat-description">Terdeteksi</p>
+                                <strong id="camera-count-cattle" class="camera-stat-value">45</strong>
+                            </article>
+                            <article class="camera-stat-card border-l-4 border-amber-500">
+                                <span class="camera-stat-icon text-amber-600"><i class="fa-solid fa-triangle-exclamation"></i></span>
+                                <p class="camera-stat-label">Anomali Hewan</p>
+                                <p class="camera-stat-description">Perlu pemeriksaan</p>
+                                <strong id="camera-count-anomaly" class="camera-stat-value">0</strong>
+                            </article>
+                        </div>
+                    </div>
+                    <div class="mt-5 border-t pt-4">
+                        <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                            <h5 class="text-sm font-semibold text-gray-700">Simulasi Tampilan &amp; Akses</h5>
+                            <span class="text-xs text-gray-400">Dummy lokal · belum mengirim perintah ke perangkat</span>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <button type="button" class="gate-demo-button" onclick="simulateAiStatus('KANDANG AMAN')">Kandang Aman</button>
+                            <button type="button" class="gate-demo-button" onclick="simulateAiStatus('NORMAL ACTIVITY: PETERNAK SAH')">Peternak Sah</button>
+                            <button type="button" class="gate-demo-button" onclick="simulateAiStatus('MONITORING TERNAK')">Monitoring Ternak</button>
+                            <button type="button" class="gate-demo-button gate-demo-button--alert" onclick="simulateSecurityAlert()">Security Alert</button>
+                            <button type="button" class="gate-demo-button" onclick="simulateRfidAccess(true)">Akses RFID Diterima</button>
+                            <button type="button" class="gate-demo-button gate-demo-button--alert" onclick="simulateRfidAccess(false)">Akses RFID Ditolak</button>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="rounded-xl border border-gray-100 bg-white shadow-sm" aria-labelledby="gate-event-log-title">
+                    <div class="border-b bg-gray-50 p-5">
+                        <h4 id="gate-event-log-title" class="font-bold text-gray-800">Log Akses RFID &amp; Event Keamanan AI</h4>
+                        <p class="mt-1 text-xs text-gray-500">Riwayat Zona 1 (RFID) dan Zona 2 (Kamera AI).</p>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[700px] text-left text-sm">
+                            <thead class="border-b bg-white text-xs uppercase tracking-wide text-gray-500">
+                                <tr>
+                                    <th class="p-4">Waktu (WIB)</th>
+                                    <th class="p-4">Zona/Sumber</th>
+                                    <th class="p-4">Detail / UID</th>
+                                    <th class="p-4">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="smart-gate-event-log"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        let collarChartsInitialized = false;
+
+        // Fungsi untuk mengganti tab halaman
+        function switchTab(tabId) {
+            // Sembunyikan semua tab
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Tampilkan tab yang dipilih
+            document.getElementById(tabId).classList.add('active');
+
+            // Ubah gaya tombol navigasi aktif
+            const buttons = document.querySelectorAll('.nav-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('bg-green-700', 'text-white');
+                btn.classList.add('text-green-100');
+            });
+            
+            // Cari tombol yang diklik dan jadikan aktif (berdasarkan onClick attribute)
+            const activeBtn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
+            if(activeBtn) {
+                activeBtn.classList.add('bg-green-700', 'text-white');
+                activeBtn.classList.remove('text-green-100');
+            }
+
+            // Ubah Judul Header berdasarkan Tab
+            const titles = {
+                'dashboard': 'Dashboard Overview',
+                'collar': 'Manajemen Ternak (Smart Collar)',
+                'kandang': 'Moo-nitoring Kandang',
+                'feeding': 'Sistem Pakan (Smart Feeding)',
+                'gate': 'Keamanan & Akses (Smart Gate)'
+            };
+            document.getElementById('page-title').innerText = titles[tabId];
+
+            if (tabId === 'collar') {
+                initializeCollarCharts();
+            }
+        }
+
+        const sensorSeries = [
+            { id: 'temperature', name: 'Suhu', color: '#f97316', unit: '°C', max: 40, currentValue: 32.5, variation: 2.8, values: [31, 29, 30.5, 28.5, 32, 32.5], simulation: [32.5, 29.4, 28.1, 31.2, 30.2] },
+            { id: 'humidity', name: 'Kelembapan', color: '#2563eb', unit: '%', max: 100, currentValue: 65, variation: 9, values: [68, 70, 64, 69, 67, 65], simulation: [65, 77, 73, 70, 65] },
+            { id: 'nh3', name: 'Amonia (NH₃)', color: '#16a34a', unit: 'ppm', max: 50, currentValue: 18, variation: 6, values: [15, 12, 18, 14, 20, 18], simulation: [18, 19, 26, 22, 18] },
+            { id: 'co2', name: 'Karbon Dioksida (CO₂)', color: '#9333ea', unit: 'ppm', max: 2000, currentValue: 950, variation: 230, values: [900, 820, 980, 860, 1020, 950], simulation: [950, 1100, 1550, 1320, 950] },
+            { id: 'sound', name: 'Suara', color: '#db2777', unit: 'dB', max: 100, currentValue: 50, variation: 12, values: [48, 42, 55, 47, 53, 50], simulation: [50, 62, 72, 65, 50] }
+        ];
+        const chartTimes = ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00'];
+        const notifications = new Map();
+        let simulationStep = 0;
+
+        function getSensorCondition(sensor) {
+            let state = 'normal';
+            let advice = 'Dalam rentang pemantauan.';
+            const value = sensor.currentValue;
+
+            if (sensor.id === 'temperature') {
+                if (value > 30 || value < 18) {
+                    state = 'help';
+                    advice = value > 30 ? 'Tingkatkan ventilasi atau nyalakan kipas.' : 'Periksa perlindungan dari suhu terlalu dingin.';
+                } else if (value > 28) {
+                    state = 'attention';
+                    advice = 'Pantau suhu agar tetap pada 18–28 °C.';
+                }
+            } else if (sensor.id === 'humidity') {
+                if (value < 45 || value > 80) {
+                    state = 'help';
+                    advice = 'Periksa alas kandang dan sirkulasi udara.';
+                } else if (value < 50 || value > 75) {
+                    state = 'attention';
+                    advice = 'Kelembapan di luar rentang nyaman 50–75%.';
+                }
+            } else if (sensor.id === 'nh3') {
+                if (value >= 25) {
+                    state = 'help';
+                    advice = 'Bersihkan kotoran atau alas basah dan tingkatkan ventilasi.';
+                } else if (value >= 20) {
+                    state = 'attention';
+                    advice = 'Pantau kadar amonia; batas waspada 25 ppm.';
+                }
+            } else if (sensor.id === 'co2') {
+                if (value >= 1500) {
+                    state = 'help';
+                    advice = 'Tingkatkan pertukaran udara di kandang.';
+                } else if (value >= 1200) {
+                    state = 'attention';
+                    advice = 'Pantau CO₂; target dashboard di bawah 1.500 ppm.';
+                }
+            } else if (sensor.id === 'sound') {
+                if (value >= 70) {
+                    state = 'help';
+                    advice = 'Periksa sumber suara dan kondisi ternak.';
+                } else if (value >= 60) {
+                    state = 'attention';
+                    advice = 'Pantau suara; batas perhatian 70 dB.';
+                }
+            }
+
+            return { state, advice };
+        }
+
+        function formatSensorValue(sensor, value) {
+            return sensor.id === 'temperature' ? value.toFixed(1) : Math.round(value).toString();
+        }
+
+        function upsertNotification(id, level, title, message) {
+            notifications.set(id, {
+                id,
+                level,
+                title,
+                message,
+                updatedAt: Date.now(),
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            });
+        }
+
+        function renderNotifications(activeConditionCount) {
+            const list = document.getElementById('notification-list');
+            const badge = document.getElementById('notification-count');
+            const entries = Array.from(notifications.values())
+                .sort((first, second) => second.updatedAt - first.updatedAt)
+                .slice(0, 6);
+
+            list.replaceChildren();
+            entries.forEach(notification => {
+                const item = document.createElement('li');
+                item.className = 'notification-entry';
+                const dot = document.createElement('span');
+                dot.className = `alert-dot ${notification.level === 'help' ? 'bg-red-500' : notification.level === 'attention' ? 'bg-amber-500' : 'bg-green-500'}`;
+                const details = document.createElement('div');
+                details.className = 'min-w-0 flex-1';
+                const title = document.createElement('p');
+                title.className = 'text-sm font-semibold text-gray-800';
+                title.textContent = notification.title;
+                const message = document.createElement('p');
+                message.className = 'mt-0.5 text-xs leading-relaxed text-gray-600';
+                message.textContent = notification.message;
+                const time = document.createElement('time');
+                time.className = 'mt-1 block text-xs text-gray-400';
+                time.textContent = notification.time;
+                details.append(title, message, time);
+                item.append(dot, details);
+                list.appendChild(item);
+            });
+
+            document.getElementById('notification-empty').classList.toggle('hidden', entries.length > 0);
+            document.getElementById('notification-summary').textContent = activeConditionCount
+                ? `${activeConditionCount} kondisi/perangkat perlu perhatian`
+                : entries.length ? 'Aktivitas perangkat terbaru' : 'Tidak ada peringatan aktif';
+            badge.textContent = entries.length > 9 ? '9+' : entries.length.toString();
+            badge.classList.toggle('hidden', entries.length === 0);
+            badge.classList.toggle('flex', entries.length > 0);
+            document.getElementById('notification-button').setAttribute('aria-label', `Buka notifikasi, ${entries.length} item`);
+        }
+
+        function toggleNotifications() {
+            const panel = document.getElementById('notification-panel');
+            const button = document.getElementById('notification-button');
+            const isOpening = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden', !isOpening);
+            button.setAttribute('aria-expanded', String(isOpening));
+        }
+
+        document.addEventListener('click', event => {
+            const panel = document.getElementById('notification-panel');
+            const button = document.getElementById('notification-button');
+            if (!panel.contains(event.target) && !button.contains(event.target)) {
+                panel.classList.add('hidden');
+                button.setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                document.getElementById('notification-panel').classList.add('hidden');
+                document.getElementById('notification-button').setAttribute('aria-expanded', 'false');
+            }
+        });
+
+        function updateSensorMonitoring() {
+            const conditions = sensorSeries.map(sensor => {
+                const condition = getSensorCondition(sensor);
+                document.getElementById(`sensor-value-${sensor.id}`).textContent = formatSensorValue(sensor, sensor.currentValue);
+                const status = document.getElementById(`sensor-status-${sensor.id}`);
+                status.className = `sensor-status mt-2 text-xs font-medium sensor-status--${condition.state}`;
+                status.textContent = `${condition.state === 'help' ? 'Butuh bantuan' : condition.state === 'attention' ? 'Perlu perhatian' : 'Normal'} · ${condition.advice}`;
+
+                if (condition.state !== 'normal') {
+                    upsertNotification(
+                        `sensor-${sensor.id}`,
+                        condition.state,
+                        `${sensor.name} · ${condition.state === 'help' ? 'Butuh bantuan' : 'Perlu perhatian'}`,
+                        `${formatSensorValue(sensor, sensor.currentValue)} ${sensor.unit}. ${condition.advice}`
+                    );
+                } else {
+                    notifications.delete(`sensor-${sensor.id}`);
+                }
+                return { sensor, condition };
+            });
+
+            const needsHelp = conditions.filter(item => item.condition.state === 'help');
+            const needsAttention = conditions.filter(item => item.condition.state === 'attention');
+            const summary = document.getElementById('condition-summary');
+            summary.textContent = needsHelp.length
+                ? `${needsHelp.length} sensor butuh bantuan${needsAttention.length ? `, ${needsAttention.length} perlu perhatian` : ''}. Prioritaskan tindakan pada sensor merah.`
+                : needsAttention.length
+                    ? `Tidak ada kondisi kritis; ${needsAttention.length} sensor perlu perhatian.`
+                    : 'Semua sensor berada dalam rentang pemantauan.';
+            summary.className = `mt-1 text-xs ${needsHelp.length ? 'font-semibold text-red-600' : needsAttention.length ? 'font-medium text-amber-600' : 'text-green-600'}`;
+
+            const conditionList = document.getElementById('sensor-condition-list');
+            conditionList.replaceChildren();
+            const nonNormal = conditions.filter(item => item.condition.state !== 'normal');
+            if (nonNormal.length === 0) {
+                const item = document.createElement('p');
+                item.className = 'text-sm text-green-700';
+                item.textContent = 'Tidak ada sensor yang memerlukan bantuan saat ini.';
+                conditionList.appendChild(item);
+            } else {
+                nonNormal.forEach(({ sensor, condition }) => {
+                    const item = document.createElement('article');
+                    item.className = `condition-entry condition-entry--${condition.state}`;
+                    const title = document.createElement('p');
+                    title.className = 'font-semibold';
+                    title.textContent = `${sensor.name}: ${condition.state === 'help' ? 'Butuh bantuan' : 'Perlu perhatian'} (${formatSensorValue(sensor, sensor.currentValue)} ${sensor.unit})`;
+                    const advice = document.createElement('p');
+                    advice.className = 'mt-1 text-xs';
+                    advice.textContent = condition.advice;
+                    item.append(title, advice);
+                    conditionList.appendChild(item);
+                });
+            }
+
+            const score = Math.max(30, 100 - needsHelp.length * 28 - needsAttention.length * 10);
+            document.getElementById('comfort-score').textContent = score.toString();
+            const comfortStatus = document.getElementById('comfort-status');
+            const comfortBar = document.getElementById('comfort-bar');
+            if (score <= 50) {
+                comfortStatus.textContent = 'Butuh tindakan';
+                comfortStatus.className = 'mb-1 ml-auto rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700';
+                comfortBar.className = 'h-2.5 rounded-full bg-red-500 comfort-progress comfort-progress--low';
+            } else if (score <= 80) {
+                comfortStatus.textContent = 'Perlu perhatian';
+                comfortStatus.className = 'mb-1 ml-auto rounded-full bg-yellow-100 px-2 py-1 text-xs font-semibold text-yellow-700';
+                comfortBar.className = 'h-2.5 rounded-full bg-yellow-400 comfort-progress comfort-progress--medium';
+            } else {
+                comfortStatus.textContent = 'Nyaman';
+                comfortStatus.className = 'mb-1 ml-auto rounded-full bg-green-100 px-2 py-1 text-xs font-semibold text-green-700';
+                comfortBar.className = 'h-2.5 rounded-full bg-green-500 comfort-progress comfort-progress--high';
+            }
+            document.getElementById('comfort-description').textContent = needsHelp.length
+                ? `Skor turun karena ${needsHelp.map(item => item.sensor.name).join(', ')} membutuhkan bantuan.`
+                : needsAttention.length
+                    ? 'Ada sensor di luar kondisi ideal; periksa kembali setelah penyesuaian.'
+                    : 'Seluruh sensor dalam rentang pemantauan yang nyaman.';
+
+            const nh3 = sensorSeries.find(sensor => sensor.id === 'nh3');
+            const humidity = sensorSeries.find(sensor => sensor.id === 'humidity');
+            const cleaningRecommendation = document.getElementById('cleaning-recommendation');
+            const cleaningStatus = document.getElementById('cleaning-status');
+            if (nh3.currentValue >= 25 || humidity.currentValue > 80) {
+                cleaningRecommendation.textContent = 'Prioritaskan pembersihan kotoran dan alas yang basah sekarang, lalu pastikan ventilasi kandang lancar.';
+                cleaningStatus.textContent = `NH₃ ${formatSensorValue(nh3, nh3.currentValue)} ppm · perlu pemeriksaan segera.`;
+                cleaningStatus.className = 'mt-3 text-xs font-medium text-red-700';
+            } else if (nh3.currentValue >= 20 || humidity.currentValue > 75) {
+                cleaningRecommendation.textContent = 'Periksa alas kandang dan jadwalkan pembersihan bila terdapat bagian basah atau kotoran menumpuk.';
+                cleaningStatus.textContent = `NH₃ ${formatSensorValue(nh3, nh3.currentValue)} ppm · mendekati batas waspada 25 ppm.`;
+                cleaningStatus.className = 'mt-3 text-xs font-medium text-amber-700';
+            } else {
+                cleaningRecommendation.textContent = 'Lakukan pemeriksaan rutin dan bersihkan area alas yang basah atau terdapat penumpukan kotoran.';
+                cleaningStatus.textContent = `NH₃ ${formatSensorValue(nh3, nh3.currentValue)} ppm · di bawah batas waspada dashboard (25 ppm).`;
+                cleaningStatus.className = 'mt-3 text-xs font-medium text-green-800';
+            }
+
+            renderNotifications(needsHelp.length + needsAttention.length);
+        }
+
+        function getRangeData(sensor, range) {
+            if (range === 'day') {
+                const values = sensor.values.slice();
+                values[values.length - 1] = sensor.currentValue;
+                return { values, labels: chartTimes };
+            }
+
+            const count = range === 'week' ? 7 : range === 'month' ? 30 : 12;
+            const values = Array.from({ length: count }, (_, index) => {
+                const cycle = Math.sin((index + 1) * 1.73 + sensorSeries.indexOf(sensor) * 0.9)
+                    + Math.cos((index + 1) * 0.67 + sensorSeries.indexOf(sensor)) * 0.45;
+                const value = Math.max(0, Math.min(sensor.max, sensor.currentValue + cycle * sensor.variation));
+                return sensor.id === 'temperature' ? Math.round(value * 10) / 10 : Math.round(value);
+            });
+            values[values.length - 1] = sensor.currentValue;
+
+            const labels = Array.from({ length: count }, (_, index) => {
+                const date = new Date();
+                if (range === 'week') {
+                    date.setDate(date.getDate() - (count - 1 - index));
+                    return date.toLocaleDateString('id-ID', { weekday: 'short' });
+                }
+                if (range === 'month') {
+                    date.setDate(date.getDate() - (count - 1 - index));
+                    return date.getDate().toString();
+                }
+                date.setMonth(date.getMonth() - (count - 1 - index));
+                return date.toLocaleDateString('id-ID', { month: 'short' });
+            });
+            return { values, labels };
+        }
+
+        function renderSensorChart() {
+            const chart = document.getElementById('sensor-chart');
+            const legend = document.getElementById('sensor-legend');
+            const filter = document.getElementById('sensor-filter').value;
+            const range = document.getElementById('period-filter').value;
+            const rangeLabels = { day: 'hari ini', week: '7 hari terakhir', month: '30 hari terakhir', year: '12 bulan terakhir' };
+            const selectedSeries = filter === 'all'
+                ? sensorSeries
+                : sensorSeries.filter(series => series.id === filter);
+            const left = 74;
+            const right = 780;
+            const top = 18;
+            const bottom = 245;
+            const width = right - left;
+            const height = bottom - top;
+            const seriesData = new Map(selectedSeries.map(series => [series.id, getRangeData(series, range)]));
+            const labelSet = seriesData.get(selectedSeries[0].id).labels;
+            let markup = '';
+
+            for (let tick = 0; tick <= 4; tick += 1) {
+                const y = bottom - (height * tick / 4);
+                const value = filter === 'all' ? `${tick * 25}%` : `${Math.round(selectedSeries[0].max * tick / 4)} ${selectedSeries[0].unit}`;
+                markup += `<line class="chart-grid-line" x1="${left}" y1="${y}" x2="${right}" y2="${y}"></line>`;
+                markup += `<text class="chart-axis-label" x="${left - 10}" y="${y + 4}" text-anchor="end">${value}</text>`;
+            }
+
+            for (let tick = 0; tick < 6; tick += 1) {
+                const index = Math.round((labelSet.length - 1) * tick / 5);
+                const x = left + (width * index / (labelSet.length - 1));
+                markup += `<text class="chart-axis-label" x="${x}" y="${bottom + 24}" text-anchor="middle">${labelSet[index]}</text>`;
+            }
+
+            selectedSeries.forEach(series => {
+                const data = seriesData.get(series.id);
+                const points = data.values.map((value, index) => {
+                    const x = left + (width * index / (data.values.length - 1));
+                    const y = bottom - (height * value / series.max);
+                    return { x, y, value };
+                });
+                markup += `<polyline class="chart-series-line" stroke="${series.color}" points="${points.map(point => `${point.x},${point.y}`).join(' ')}"></polyline>`;
+                points.forEach((point, index) => {
+                    markup += `<circle cx="${point.x}" cy="${point.y}" r="3.5" fill="${series.color}"><title>${series.name}: ${point.value} ${series.unit} (${data.labels[index]})</title></circle>`;
+                });
+            });
+
+            chart.innerHTML = markup;
+            legend.replaceChildren();
+            selectedSeries.forEach(series => {
+                const item = document.createElement('span');
+                item.className = 'inline-flex items-center gap-2';
+                const dot = document.createElement('span');
+                dot.className = `chart-legend-dot chart-legend-dot--${series.id}`;
+                const label = document.createElement('span');
+                label.textContent = series.name;
+                item.append(dot, label);
+                legend.appendChild(item);
+            });
+
+            document.getElementById('chart-description').textContent = filter === 'all'
+                ? `Perbandingan indeks relatif semua sensor (${rangeLabels[range]}, skala 0–100%).`
+                : `Riwayat ${selectedSeries[0].name} ${rangeLabels[range]} dalam ${selectedSeries[0].unit}.`;
+        }
+
+        const actuatorStates = { fan: true, led: false };
+        const actuatorLabels = { fan: 'Kipas', led: 'Lampu LED' };
+
+        function toggleActuator(device) {
+            actuatorStates[device] = !actuatorStates[device];
+            const isOn = actuatorStates[device];
+            const button = document.getElementById(`${device}-toggle`);
+            button.setAttribute('aria-pressed', String(isOn));
+            button.textContent = isOn
+                ? `Matikan ${device === 'led' ? 'LED' : 'kipas'}`
+                : `Nyalakan ${device === 'led' ? 'LED' : 'kipas'}`;
+            button.className = `actuator-toggle mt-4 w-full rounded-lg px-3 py-2 text-sm font-semibold ${isOn ? 'actuator-on' : 'actuator-off'}`;
+            upsertNotification(
+                `device-${device}`,
+                isOn ? 'normal' : 'attention',
+                `${actuatorLabels[device]} ${isOn ? 'aktif' : 'nonaktif'}`,
+                `Status diperbarui dari dashboard demo.`
+            );
+            renderNotifications(sensorSeries.filter(sensor => getSensorCondition(sensor).state !== 'normal').length);
+        }
+
+        const smartGateApi = {
+            endpoints: {
+                device: '/api/v1/devices/DEV_004',
+                events: '/api/v1/events',
+                commands: '/api/v1/devices/DEV_004/commands'
+            },
+            device: {
+                device_id: 'DEV_004',
+                device_type: 'SMART_GATE',
+                device_name: 'Smart Gate & Internal Surveillance',
+                connection_status: 'ONLINE',
+                state: {
+                    gate_locked: true,
+                    operator_alarm_on: false,
+                    operator_buzzer: 'OFF',
+                    operator_led: 'GREEN'
+                }
+            },
+            camera: {
+                camera_id: 'CAM_004',
+                ai_model: 'YOLOv8',
+                stream_url: '',
+                ai_status: 'KANDANG AMAN',
+                detection_counts: {
+                    authorized_rancher: 1,
+                    intruder_no_hat: 0,
+                    cattle: 45,
+                    animal_anomaly: 0
+                }
+            },
+            events: [],
+            last_command_payload: null,
+            createCommandPayload(command, parameters) {
+                return {
+                    device_id: this.device.device_id,
+                    command,
+                    parameters: parameters || {},
+                    source: 'dashboard',
+                    issued_at: new Date().toISOString()
+                };
+            }
+        };
+        window.smartGateApi = smartGateApi;
+        const gateEventStatuses = ['DITERIMA', 'DITOLAK', 'SECURITY ALERT', 'CLEAR'];
+        let gateEventSequence = 0;
+        let buzzerTestTimer = null;
+        let buzzerTesting = false;
+
+        function mockSmartGateCommand(command, parameters) {
+            const payload = smartGateApi.createCommandPayload(command, parameters);
+            smartGateApi.last_command_payload = payload;
+            const online = smartGateApi.device.connection_status === 'ONLINE';
+
+            // Replace this mock response with a POST to smartGateApi.endpoints.commands when the backend is ready.
+            return {
+                accepted: online,
+                mode: 'SIMULATED',
+                command_id: `CMD_004_${Date.now()}`,
+                device_id: smartGateApi.device.device_id,
+                command,
+                status: online ? 'ACCEPTED' : 'DEVICE_OFFLINE',
+                issued_at: payload.issued_at,
+                payload
+            };
+        }
+
+        function recordSmartGateEvent(eventType, source, detail, status) {
+            if (!gateEventStatuses.includes(status)) {
+                throw new Error(`Unsupported Smart Gate event status: ${status}`);
+            }
+
+            gateEventSequence += 1;
+            const event = {
+                event_id: `EVT_004_${Date.now()}_${gateEventSequence}`,
+                device_id: smartGateApi.device.device_id,
+                event_type: eventType,
+                source,
+                detail,
+                status,
+                timestamp: new Date().toISOString()
+            };
+            smartGateApi.events.unshift(event);
+            smartGateApi.events.length = Math.min(smartGateApi.events.length, 20);
+            renderSmartGateEvents();
+            return event;
+        }
+
+        function formatWib(timestamp) {
+            return new Intl.DateTimeFormat('id-ID', {
+                timeZone: 'Asia/Jakarta',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            }).format(new Date(timestamp));
+        }
+
+        function renderSmartGateEvents() {
+            const tableBody = document.getElementById('smart-gate-event-log');
+            tableBody.replaceChildren();
+
+            smartGateApi.events.forEach(event => {
+                const row = document.createElement('tr');
+                row.className = 'gate-event-row';
+                const time = document.createElement('td');
+                time.className = 'p-4 whitespace-nowrap text-gray-500';
+                time.textContent = formatWib(event.timestamp);
+                const source = document.createElement('td');
+                source.className = 'p-4 whitespace-nowrap font-medium text-gray-700';
+                source.textContent = event.source;
+                const detail = document.createElement('td');
+                detail.className = 'p-4 text-gray-700';
+                detail.textContent = event.detail;
+                const statusCell = document.createElement('td');
+                statusCell.className = 'p-4';
+                const status = document.createElement('span');
+                status.className = `gate-event-status gate-event-status--${event.status.replace(' ', '_')}`;
+                status.textContent = event.status;
+                statusCell.appendChild(status);
+                row.append(time, source, detail, statusCell);
+                tableBody.appendChild(row);
+            });
+        }
+
+        function renderGateConnection() {
+            const online = smartGateApi.device.connection_status === 'ONLINE';
+            const connection = document.getElementById('gate-connection-status');
+            const rfid = document.getElementById('rfid-reader-status');
+            const servo = document.getElementById('servo-device-status');
+            connection.textContent = online ? 'ONLINE' : 'OFFLINE';
+            connection.className = `device-status ${online ? 'device-status--online' : 'device-status--offline'}`;
+            rfid.textContent = online ? 'ONLINE' : 'OFFLINE';
+            rfid.className = `mt-1 block ${online ? 'text-green-700' : 'text-red-700'}`;
+            servo.textContent = online ? 'ONLINE' : 'OFFLINE';
+            servo.className = `mt-1 block ${online ? 'text-green-700' : 'text-red-700'}`;
+            renderGateState();
+        }
+
+        function setGateConnectionStatus(status) {
+            if (!['ONLINE', 'OFFLINE'].includes(status)) {
+                throw new Error(`Unsupported Smart Gate connection status: ${status}`);
+            }
+            smartGateApi.device.connection_status = status;
+            renderGateConnection();
+        }
+
+        function renderGateState() {
+            const online = smartGateApi.device.connection_status === 'ONLINE';
+            const locked = smartGateApi.device.state.gate_locked;
+            const panel = document.getElementById('gate-state-panel');
+            panel.className = `gate-state-panel ${locked ? 'gate-state-panel--locked' : 'gate-state-panel--open'} rounded-xl p-5 text-center`;
+            document.getElementById('gate-state-icon').className = `fa-solid ${locked ? 'fa-door-closed' : 'fa-door-open'} text-4xl ${locked ? 'text-green-700' : 'text-amber-600'}`;
+            document.getElementById('gate-state-title').textContent = online
+                ? (locked ? 'GERBANG TERKUNCI' : 'GERBANG TERBUKA')
+                : 'PERANGKAT OFFLINE';
+            document.getElementById('gate-state-description').textContent = online
+                ? (locked ? 'RFID Reader MFRC522 aktif. Gerbang terkunci.' : 'Servo ESP32 membuka gerbang secara manual.')
+                : 'Koneksi RFID MFRC522 atau Servo ESP32 terputus.';
+            document.getElementById('gate-toggle-button').textContent = locked ? 'Buka Manual (Servo)' : 'Kunci Gerbang (Servo)';
+        }
+
+        function renderOperatorAlert() {
+            const alarmOn = smartGateApi.device.state.operator_alarm_on;
+            const card = document.getElementById('operator-alert-card');
+            const indicator = document.getElementById('operator-alarm-indicator');
+            card.classList.toggle('operator-alert-card--alarm', alarmOn);
+            indicator.className = `operator-alarm-indicator ${alarmOn ? 'operator-alert-indicator--alarm' : 'operator-alert-indicator--safe'}`;
+            document.getElementById('operator-alarm-label').textContent = alarmOn ? 'ALARM ON / PENYUSUP' : 'ALARM OFF / AMAN';
+            document.getElementById('operator-buzzer-state').textContent = alarmOn ? 'ON' : buzzerTesting ? 'TEST ON' : 'OFF';
+            document.getElementById('operator-buzzer-state').className = `text-xs ${alarmOn || buzzerTesting ? 'text-red-700' : 'text-green-700'}`;
+            document.getElementById('operator-led-state').textContent = alarmOn ? 'MERAH / PENYUSUP' : 'HIJAU / AMAN';
+            document.getElementById('operator-led-state').className = `text-xs ${alarmOn ? 'text-red-700' : 'text-green-700'}`;
+            document.getElementById('operator-alert-message').textContent = alarmOn
+                ? 'Peringatan aktif. Periksa kamera internal dan tekan CLEAR setelah kondisi dipastikan aman.'
+                : buzzerTesting
+                    ? 'Tes buzzer sedang berjalan.'
+                    : 'Buzzer dan LED operator dalam kondisi aman.';
+        }
+
+        function renderCameraStats() {
+            const counts = smartGateApi.camera.detection_counts;
+            document.getElementById('camera-count-authorized').textContent = counts.authorized_rancher.toString();
+            document.getElementById('camera-count-intruder').textContent = counts.intruder_no_hat.toString();
+            document.getElementById('camera-count-cattle').textContent = counts.cattle.toString();
+            document.getElementById('camera-count-anomaly').textContent = counts.animal_anomaly.toString();
+        }
+
+        function setAiStatus(status) {
+            const statusClass = {
+                'KANDANG AMAN': 'safe',
+                'NORMAL ACTIVITY: PETERNAK SAH': 'authorized',
+                'MONITORING TERNAK': 'monitoring',
+                'SECURITY ALERT': 'alert'
+            }[status];
+            if (!statusClass) {
+                throw new Error(`Unsupported YOLOv8 status: ${status}`);
+            }
+
+            smartGateApi.camera.ai_status = status;
+            const badge = document.getElementById('ai-status-badge');
+            badge.textContent = status;
+            badge.className = `ai-status-badge ai-status-badge--${statusClass}`;
+        }
+
+        function setCameraStream(streamUrl) {
+            const image = document.getElementById('camera-stream');
+            const fallback = document.getElementById('camera-fallback');
+            const status = document.getElementById('camera-stream-status');
+            image.onerror = () => {
+                image.classList.add('hidden');
+                fallback.classList.remove('hidden');
+                status.textContent = 'Stream kamera tidak tersedia · menampilkan placeholder.';
+            };
+            image.onload = () => {
+                image.classList.remove('hidden');
+                fallback.classList.add('hidden');
+                status.textContent = 'Stream CCTV internal aktif.';
+            };
+
+            if (!streamUrl) {
+                image.removeAttribute('src');
+                image.classList.add('hidden');
+                fallback.classList.remove('hidden');
+                status.textContent = 'Kamera internal offline · menampilkan placeholder.';
+                return;
+            }
+
+            image.src = streamUrl;
+        }
+
+        function refreshGateNotifications() {
+            const sensorAlertCount = sensorSeries.filter(sensor => getSensorCondition(sensor).state !== 'normal').length;
+            const gateAlertCount = Number(notifications.has('gate-security')) + Number(notifications.has('gate-rfid-denied'));
+            renderNotifications(sensorAlertCount + gateAlertCount);
+        }
+
+        function toggleManualGate() {
+            const opening = smartGateApi.device.state.gate_locked;
+            const command = opening ? 'OPEN_GATE' : 'LOCK_GATE';
+            const result = mockSmartGateCommand(command, { actuator: 'SERVO_ESP32' });
+            if (!result.accepted) {
+                recordSmartGateEvent('DEVICE_COMMAND', 'Zona 1: RFID', `Perintah ${command} gagal: perangkat OFFLINE.`, 'DITOLAK');
+                return;
+            }
+
+            smartGateApi.device.state.gate_locked = !opening;
+            renderGateState();
+            recordSmartGateEvent('DEVICE_COMMAND', 'Zona 1: RFID', opening ? 'Gerbang dibuka manual via Servo ESP32.' : 'Gerbang dikunci via Servo ESP32.', 'DITERIMA');
+        }
+
+        function testOperatorBuzzer() {
+            const result = mockSmartGateCommand('TEST_BUZZER', { actuator: 'OPERATOR_BUZZER' });
+            if (!result.accepted) {
+                recordSmartGateEvent('DEVICE_COMMAND', 'Zona 1: RFID', 'Tes buzzer gagal: perangkat OFFLINE.', 'DITOLAK');
+                return;
+            }
+
+            buzzerTesting = true;
+            renderOperatorAlert();
+            recordSmartGateEvent('DEVICE_COMMAND', 'Zona 1: RFID', 'Tes Buzzer Operator dijalankan.', 'DITERIMA');
+            if (buzzerTestTimer) {
+                clearTimeout(buzzerTestTimer);
+            }
+            buzzerTestTimer = setTimeout(() => {
+                buzzerTesting = false;
+                renderOperatorAlert();
+            }, 1800);
+        }
+
+        function clearOperatorAlarm() {
+            const result = mockSmartGateCommand('CLEAR_ALARM', { actuator: 'OPERATOR_BUZZER_LED' });
+            if (!result.accepted) {
+                recordSmartGateEvent('DEVICE_COMMAND', 'Zona 2: Kamera AI', 'Perintah CLEAR gagal: perangkat OFFLINE.', 'DITOLAK');
+                return;
+            }
+
+            smartGateApi.device.state.operator_alarm_on = false;
+            buzzerTesting = false;
+            if (smartGateApi.camera.ai_status === 'SECURITY ALERT') {
+                smartGateApi.camera.detection_counts.intruder_no_hat = 0;
+                setAiStatus('KANDANG AMAN');
+                renderCameraStats();
+            }
+            notifications.delete('gate-security');
+            notifications.delete('gate-rfid-denied');
+            renderOperatorAlert();
+            recordSmartGateEvent('OPERATOR_ALARM_CLEAR', 'Zona 2: Kamera AI', 'Alarm operator dimatikan dengan perintah CLEAR.', 'CLEAR');
+            refreshGateNotifications();
+        }
+
+        function simulateAiStatus(status) {
+            if (status === 'SECURITY ALERT') {
+                simulateSecurityAlert();
+                return;
+            }
+
+            setAiStatus(status);
+            const counts = smartGateApi.camera.detection_counts;
+            if (status === 'KANDANG AMAN') {
+                counts.intruder_no_hat = 0;
+            } else if (status === 'NORMAL ACTIVITY: PETERNAK SAH') {
+                counts.authorized_rancher = 1;
+            } else if (status === 'MONITORING TERNAK') {
+                counts.cattle = 45;
+            }
+            renderCameraStats();
+            refreshGateNotifications();
+        }
+
+        function simulateSecurityAlert() {
+            setAiStatus('SECURITY ALERT');
+            smartGateApi.camera.detection_counts.intruder_no_hat = 1;
+            smartGateApi.device.state.operator_alarm_on = true;
+            renderCameraStats();
+            renderOperatorAlert();
+            upsertNotification('gate-security', 'help', 'SECURITY ALERT · Zona 2', 'Penyusup tanpa topi terdeteksi kamera AI YOLOv8.');
+            refreshGateNotifications();
+            recordSmartGateEvent('AI_SECURITY_ALERT', 'Zona 2: Kamera AI', 'Penyusup Tanpa Topi terdeteksi oleh YOLOv8.', 'SECURITY ALERT');
+        }
+
+        function simulateRfidAccess(accepted) {
+            if (accepted) {
+                notifications.delete('gate-rfid-denied');
+                recordSmartGateEvent('RFID_ACCESS', 'Zona 1: RFID', 'UID kartu 73 82 A7 AA (Peternak).', 'DITERIMA');
+            } else {
+                upsertNotification('gate-rfid-denied', 'attention', 'Akses RFID ditolak', 'UID tidak dikenal · gerbang tetap terkunci.');
+                recordSmartGateEvent('RFID_ACCESS', 'Zona 1: RFID', 'UID tidak dikenal · akses ditolak.', 'DITOLAK');
+            }
+            refreshGateNotifications();
+        }
+
+        const demoEventTime = Date.now();
+        smartGateApi.events = [
+            {
+                event_id: 'EVT_004_DEMO_001',
+                device_id: 'DEV_004',
+                event_type: 'RFID_ACCESS',
+                source: 'Zona 1: RFID',
+                detail: 'UID kartu 73 82 A7 AA (Peternak).',
+                status: 'DITERIMA',
+                timestamp: new Date(demoEventTime - 60000).toISOString()
+            },
+            {
+                event_id: 'EVT_004_DEMO_002',
+                device_id: 'DEV_004',
+                event_type: 'RFID_ACCESS',
+                source: 'Zona 1: RFID',
+                detail: 'UID tidak dikenal · akses ditolak.',
+                status: 'DITOLAK',
+                timestamp: new Date(demoEventTime - 5 * 60000).toISOString()
+            },
+            {
+                event_id: 'EVT_004_DEMO_004',
+                device_id: 'DEV_004',
+                event_type: 'OPERATOR_ALARM_CLEAR',
+                source: 'Zona 2: Kamera AI',
+                detail: 'Alarm operator dimatikan dengan perintah CLEAR.',
+                status: 'CLEAR',
+                timestamp: new Date(demoEventTime - 11 * 60000).toISOString()
+            },
+            {
+                event_id: 'EVT_004_DEMO_003',
+                device_id: 'DEV_004',
+                event_type: 'AI_SECURITY_ALERT',
+                source: 'Zona 2: Kamera AI',
+                detail: 'Penyusup Tanpa Topi terdeteksi oleh YOLOv8.',
+                status: 'SECURITY ALERT',
+                timestamp: new Date(demoEventTime - 12 * 60000).toISOString()
+            }
+        ];
+        renderGateConnection();
+        renderOperatorAlert();
+        renderCameraStats();
+        setAiStatus(smartGateApi.camera.ai_status);
+        setCameraStream(smartGateApi.camera.stream_url);
+        renderSmartGateEvents();
+
+        document.getElementById('sensor-filter').addEventListener('change', renderSensorChart);
+        document.getElementById('period-filter').addEventListener('change', renderSensorChart);
+        updateSensorMonitoring();
+        renderSensorChart();
+
+        setInterval(() => {
+            simulationStep = (simulationStep + 1) % sensorSeries[0].simulation.length;
+            sensorSeries.forEach(sensor => {
+                sensor.currentValue = sensor.simulation[simulationStep];
+            });
+            updateSensorMonitoring();
+            renderSensorChart();
+        }, 12000);
+
+        // Fungsi Jam Real-time
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            document.getElementById('realtime-clock').innerText = timeString;
+        }
+        
+        setInterval(updateClock, 1000);
+        updateClock(); // Inisialisasi awal
+
+        function initializeCollarCharts() {
+            if (collarChartsInitialized) {
+                return;
+            }
+
+            const collarTrendContext = document.getElementById('trendChart').getContext('2d');
+            const collarStressGradient = collarTrendContext.createLinearGradient(0, 0, 0, 200);
+            collarStressGradient.addColorStop(0, 'rgba(245, 158, 11, 0.25)');
+            collarStressGradient.addColorStop(1, 'rgba(245, 158, 11, 0.02)');
+
+            new Chart(collarTrendContext, {
+            type: 'line',
+            data: {
+                labels: ['00:00', '02:00', '04:00', '06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '24:00'],
+                datasets: [
+                    {
+                        label: 'Aktivitas (IMU)',
+                        data: [44, 48, 55, 49, 50, 59, 51, 50, 46, 46, 58, 55, 58],
+                        borderColor: '#2e7d52',
+                        backgroundColor: '#2e7d52',
+                        borderWidth: 2,
+                        tension: 0.35,
+                        pointRadius: 3.5,
+                        pointBackgroundColor: '#2e7d52'
+                    },
+                    {
+                        label: 'Stress Score',
+                        data: [22, 18, 15, 27, 30, 23, 24, 33, 47, 66, 76, 58, 32],
+                        borderColor: '#f59e0b',
+                        backgroundColor: collarStressGradient,
+                        borderWidth: 2,
+                        tension: 0.35,
+                        pointRadius: 3.5,
+                        pointBackgroundColor: '#f59e0b',
+                        fill: true
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        min: 0,
+                        max: 100,
+                        ticks: { stepSize: 25, font: { size: 10 }, color: '#64748b' },
+                        grid: { color: '#f1f5f9' }
+                    },
+                    x: {
+                        ticks: {
+                            font: { size: 10 },
+                            color: '#64748b',
+                            callback: function(value, index) {
+                                return index % 2 === 0 ? this.getLabelForValue(value) : '';
+                            }
+                        },
+                        grid: { color: '#f8fafc' }
+                    }
+                }
+            }
+            });
+
+            new Chart(document.getElementById('conditionChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Normal', 'Warning', 'Critical'],
+                datasets: [{
+                    data: [75, 17, 8],
+                    backgroundColor: ['#3b8a5a', '#f5ab35', '#d64541'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '64%',
+                rotation: -35,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: context => `${context.label}: ${context.parsed}%`
+                        }
+                    }
+                }
+            }
+            });
+
+            collarChartsInitialized = true;
+        }
+    </script>
+</body>
+</html>

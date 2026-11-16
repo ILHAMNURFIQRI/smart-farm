@@ -1,0 +1,465 @@
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f3f4f6;
+}
+
+.silo-progress {
+    width: 75%;
+}
+
+.water-progress {
+    width: 40%;
+}
+
+#collar .collar-line-chart {
+    height: 11rem;
+    position: relative;
+    width: 100%;
+}
+
+#collar #conditionChart {
+    max-height: 9rem;
+    max-width: 9rem;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.sensor-card {
+    border-left-color: var(--sensor-color);
+}
+
+.sensor-card--temperature {
+    --sensor-color: #f97316;
+}
+
+.sensor-card--humidity {
+    --sensor-color: #2563eb;
+}
+
+.sensor-card--nh3 {
+    --sensor-color: #16a34a;
+}
+
+.sensor-card--co2 {
+    --sensor-color: #9333ea;
+}
+
+.sensor-card--sound {
+    --sensor-color: #db2777;
+}
+
+.comfort-progress {
+    width: 72%;
+}
+
+.comfort-progress--low {
+    width: 40%;
+}
+
+.comfort-progress--medium {
+    width: 70%;
+}
+
+.comfort-progress--high {
+    width: 92%;
+}
+
+.sensor-status--normal {
+    color: #15803d;
+}
+
+.sensor-status--attention {
+    color: #b45309;
+}
+
+.sensor-status--help {
+    color: #b91c1c;
+}
+
+.condition-entry {
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+}
+
+.condition-entry--attention {
+    background-color: #fffbeb;
+    color: #92400e;
+}
+
+.condition-entry--help {
+    background-color: #fef2f2;
+    color: #991b1b;
+}
+
+.chart-scroll {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.sensor-chart {
+    display: block;
+    width: 100%;
+    min-width: 620px;
+    height: auto;
+}
+
+.chart-grid-line {
+    stroke: #e5e7eb;
+    stroke-dasharray: 4 5;
+    stroke-width: 1;
+}
+
+.chart-axis-label {
+    fill: #6b7280;
+    font-family: Inter, sans-serif;
+    font-size: 11px;
+}
+
+.chart-series-line {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 3;
+}
+
+.chart-legend-dot,
+.alert-dot {
+    display: inline-block;
+    flex: 0 0 auto;
+    height: 9px;
+    width: 9px;
+    border-radius: 9999px;
+}
+
+.chart-legend-dot--temperature {
+    background-color: #f97316;
+}
+
+.chart-legend-dot--humidity {
+    background-color: #2563eb;
+}
+
+.chart-legend-dot--nh3 {
+    background-color: #16a34a;
+}
+
+.chart-legend-dot--co2 {
+    background-color: #9333ea;
+}
+
+.chart-legend-dot--sound {
+    background-color: #db2777;
+}
+
+.actuator-toggle {
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.actuator-on {
+    background-color: #15803d;
+    color: #fff;
+}
+
+.actuator-on:hover {
+    background-color: #166534;
+}
+
+.actuator-off {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.actuator-off:hover {
+    background-color: #e5e7eb;
+}
+
+.notification-entry {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    border-radius: 0.5rem;
+    background-color: #f9fafb;
+    padding: 0.75rem;
+}
+
+.notification-entry .alert-dot {
+    margin-top: 0.35rem;
+}
+
+.device-status {
+    border-radius: 9999px;
+    padding: 0.3rem 0.65rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.device-status--online {
+    background: #dcfce7;
+    color: #15803d;
+}
+
+.device-status--offline {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.gate-state-panel--locked {
+    background: #f0fdf4;
+}
+
+.gate-state-panel--open {
+    background: #fffbeb;
+}
+
+.operator-alert-card--alarm {
+    border-color: #fecaca;
+}
+
+.operator-alert-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: 9999px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.operator-alert-indicator--safe {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.operator-alert-indicator--alarm {
+    background: #fee2e2;
+    color: #b91c1c;
+    animation: alert-blink 0.9s steps(2, start) infinite;
+}
+
+.operator-alarm-light {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 9999px;
+    background: currentColor;
+}
+
+.camera-preview {
+    position: relative;
+    width: 100%;
+    min-height: 220px;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    border-radius: 0.75rem;
+    background: #111827;
+}
+
+.camera-stream {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-fallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    color: #d1d5db;
+    text-align: center;
+}
+
+.camera-fallback-icon {
+    display: flex;
+    width: 3rem;
+    height: 3rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: #374151;
+    color: #f9fafb;
+    font-size: 1.25rem;
+}
+
+.camera-fallback strong {
+    color: #f9fafb;
+}
+
+.camera-fallback span:last-child {
+    font-size: 0.75rem;
+}
+
+.ai-status-badge {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    border-radius: 9999px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.ai-status-badge--safe,
+.ai-status-badge--authorized {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.ai-status-badge--monitoring {
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.ai-status-badge--alert {
+    background: #dc2626;
+    color: #fff;
+    animation: alert-blink 0.9s steps(2, start) infinite;
+}
+
+.camera-stat-card {
+    min-width: 0;
+    border-radius: 0.75rem;
+    background: #f9fafb;
+    padding: 0.75rem;
+}
+
+.camera-stat-icon {
+    font-size: 1rem;
+}
+
+.camera-stat-label {
+    margin-top: 0.5rem;
+    overflow-wrap: anywhere;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.camera-stat-description {
+    margin-top: 0.15rem;
+    font-size: 0.65rem;
+    color: #6b7280;
+}
+
+.camera-stat-value {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 1.5rem;
+    line-height: 1.25;
+    color: #111827;
+}
+
+.gate-demo-button {
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background: #fff;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #374151;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.gate-demo-button:hover {
+    border-color: #86efac;
+    background: #f0fdf4;
+}
+
+.gate-demo-button--alert {
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
+.gate-demo-button--alert:hover {
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+
+.gate-event-row {
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.gate-event-row:last-child {
+    border-bottom: 0;
+}
+
+.gate-event-status {
+    display: inline-flex;
+    border-radius: 9999px;
+    padding: 0.3rem 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.gate-event-status--DITERIMA,
+.gate-event-status--CLEAR {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.gate-event-status--DITOLAK,
+.gate-event-status--SECURITY_ALERT {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+@keyframes alert-blink {
+    to {
+        opacity: 0.45;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .operator-alert-indicator--alarm,
+    .ai-status-badge--alert {
+        animation: none;
+    }
+}
+
+@media (max-width: 640px) {
+    .sensor-chart {
+        min-width: 600px;
+    }
+}
