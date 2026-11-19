@@ -10,7 +10,7 @@ from uuid import uuid4
 from click import ClickException
 from dotenv import load_dotenv
 from flask_cors import CORS
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.exceptions import BadRequest, UnsupportedMediaType
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
@@ -78,7 +78,7 @@ def create_app(test_config=None):
         if origin.strip()
     ]
     CORS(app, resources={
-        r"/api/sensors.*": {"origins": cors_origins},
+        r"/api/*": {"origins": cors_origins},
         r"/health": {"origins": cors_origins},
         r"/model/info": {"origins": cors_origins},
     })
@@ -626,6 +626,27 @@ def create_app(test_config=None):
             "actual_state": command.actual_state,
             "message": command.ack_message,
         })
+
+    @app.get("/")
+    @app.get("/dashboard")
+    def serve_frontend_dashboard():
+        frontend_dir = Path(app.root_path).parent / "frontend"
+        return send_from_directory(frontend_dir, "dashboard_smart_farm.html")
+
+    @app.get("/css/<path:filename>")
+    def serve_frontend_css(filename):
+        css_dir = Path(app.root_path).parent / "frontend" / "css"
+        return send_from_directory(css_dir, filename)
+
+    @app.get("/img/<path:filename>")
+    def serve_frontend_img(filename):
+        img_dir = Path(app.root_path).parent / "frontend" / "img"
+        return send_from_directory(img_dir, filename)
+
+    @app.get("/js/<path:filename>")
+    def serve_frontend_js(filename):
+        js_dir = Path(app.root_path).parent / "frontend" / "js"
+        return send_from_directory(js_dir, filename)
 
     @app.cli.command("init-db")
     def init_db_command():
