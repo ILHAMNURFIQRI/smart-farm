@@ -414,6 +414,63 @@ class BackendTests(unittest.TestCase):
         device = db.session.get(Device, "DEV_002")
         self.assertEqual(device.device_type, "BARN_MONITORING_ML")
         self.assertEqual(db.session.query(SensorRegistry).filter_by(device_id="DEV_002").count(), 4)
+        self.assertEqual(db.session.query(ActuatorRegistry).filter_by(device_id="DEV_002").count(), 3)
+
+    def test_kandang_status_and_recovery_flow(self):
+        self.app.test_cli_runner().invoke(args=["seed-dev002"])
+        device = db.session.get(Device, "DEV_002")
+        device.connection_status = "ONLINE"
+        db.session.commit()
+        predictor = FakeGroup2Model()
+        self.app.extensions["group2_model"] = predictor
+
+        # Post sensor reading
+        post_resp = self.client.post(
+            "/api/sensors",
+            json={
+                "recorded_at": "2026-11-17 10:00:00",
+                "temperature_c": 32.5,
+                "humidity_rh": 75.0,
+                "sound_rms": 0.08,
+                "mq135_raw": 650.0,
+            },
+        )
+        self.assertEqual(post_resp.status_code, 201)
+
+        # Kandang status
+        status_resp = self.client.get("/api/v1/kandang/status")
+        self.assertEqual(status_resp.status_code, 200)
+        self.assertIn("comfort", status_resp.json)
+        self.assertIn("thi", status_resp.json["comfort"])
+        self.assertIn("recovery_session", status_resp.json)
+
+        # Early warning
+        ew_resp = self.client.get("/api/v1/kandang/early-warning")
+        self.assertEqual(ew_resp.status_code, 200)
+        self.assertIn("trend", ew_resp.json)
+
+        # Command to fan ACT_FAN_002
+        service = FakeMQTTService()
+        self.app.extensions["mqtt_service"] = service
+        self.app.config["API_CONTROL_TOKEN"] = "control-test-token"
+        headers = {"Authorization": "Bearer control-test-token"}
+
+        fan_cmd = self.client.post(
+            "/api/v1/devices/DEV_002/commands",
+            json={
+                "actuator_id": "ACT_FAN_002",
+                "command": "SET_STATE",
+                "parameters": {"state": "ON"},
+            },
+            headers=headers,
+        )
+        self.assertEqual(fan_cmd.status_code, 202)
+
+        # Recovery history should now have an active session
+        rec_resp = self.client.get("/api/v1/kandang/recovery-history")
+        self.assertEqual(rec_resp.status_code, 200)
+        self.assertGreaterEqual(rec_resp.json["total"], 1)
+        self.assertEqual(rec_resp.json["items"][0]["status"], "IN_PROGRESS")
 
     def test_group2_http_sensor_contract_predicts_and_persists_history(self):
         self.app.test_cli_runner().invoke(args=["seed-dev002"])
@@ -563,6 +620,53 @@ class BackendTests(unittest.TestCase):
             headers=headers,
         )
         self.assertEqual(invalid.status_code, 400)
+
+    def test_kandang_automation_and_sanitation(self):
+        self.app.test_cli_runner().invoke(args=["seed-dev002"])
+
+        # 1. Test automation rejection of unrealistic temperature (e.g. 25.0 C)
+        unrealistic = self.client.post(
+            "/api/v1/kandang/automation",
+            json={"fan_temp_on": 25.0, "fan_temp_off": 24.0},
+        )
+        self.assertEqual(unrealistic.status_code, 400)
+        self.assertIn("rentang wajar", unrealistic.get_json()["error"]["message"])
+
+        # 2. Test valid automation config
+        valid = self.client.post(
+            "/api/v1/kandang/automation",
+            json={
+                "fan_auto": True,
+                "fan_temp_on": 30.5,
+                "fan_temp_off": 28.5,
+                "led_auto": True,
+                "led_start_time": "18:00",
+                "led_end_time": "06:00",
+            },
+        )
+        self.assertEqual(valid.status_code, 200)
+        self.assertEqual(valid.get_json()["automation"]["fan_temp_on"], 30.5)
+
+        get_auto = self.client.get("/api/v1/kandang/automation")
+        self.assertEqual(get_auto.status_code, 200)
+        self.assertEqual(get_auto.get_json()["automation"]["fan_temp_off"], 28.5)
+
+        # 3. Test Sanitation log
+        san_create = self.client.post(
+            "/api/v1/kandang/sanitation",
+            json={
+                "cleaning_type": "Sanitasi & Semprot Disinfektan",
+                "operator_name": "Budi Santoso",
+                "status": "SELESAI",
+                "notes": "Pembersihan rutin kandang A",
+            },
+        )
+        self.assertEqual(san_create.status_code, 201)
+
+        san_get = self.client.get("/api/v1/kandang/sanitation")
+        self.assertEqual(san_get.status_code, 200)
+        self.assertEqual(san_get.get_json()["total"], 1)
+        self.assertEqual(san_get.get_json()["items"][0]["operator_name"], "Budi Santoso")
 
 
 if __name__ == "__main__":
