@@ -17,10 +17,12 @@ from sqlalchemy.exc import IntegrityError
 
 from models import (
     ActuatorRegistry,
+    BarnRecoveryLog,
     Device,
     DeviceCommand,
     FarmEvent,
     Group2Prediction,
+    SanitationLog,
     SensorRegistry,
     Telemetry,
     as_utc,
@@ -41,6 +43,18 @@ from schemas import (
     require_id,
     require_text,
     validate_stream_url,
+)
+from moo_nitoring import (
+    calculate_comfort_metrics,
+    calculate_thi,
+    get_active_recovery_session,
+    get_group2_model,
+    get_kandang_early_warning,
+    group2_prediction_json,
+    moo_nitoring_bp,
+    parse_group2_timestamp,
+    recovery_log_json,
+    update_recovery_sessions,
 )
 
 
@@ -85,45 +99,7 @@ def create_app(test_config=None):
     db.init_app(app)
     app.extensions["mqtt_service"] = None
     app.extensions["group2_model"] = None
-
-    def get_group2_model():
-        model = app.extensions["group2_model"]
-        if model is None:
-            model_dir = app.config.get("GROUP2_MODEL_DIR")
-            if not model_dir:
-                model_dir = Path(app.root_path).parent / "backend kel 2" / "model"
-            model = Group2Model(model_dir)
-            app.extensions["group2_model"] = model
-        return model
-
-    def parse_group2_timestamp(value):
-        if value is None:
-            return utc_now()
-        if not isinstance(value, str):
-            raise ValidationError("recorded_at must be an ISO 8601 timestamp")
-        try:
-            return parse_timestamp(value, "recorded_at")
-        except ValidationError:
-            try:
-                local_time = datetime.strptime(value, "%Y-%m-%d %H:%M:%S")
-            except ValueError as exc:
-                raise ValidationError(
-                    "recorded_at must be ISO 8601 or YYYY-MM-DD HH:MM:SS"
-                ) from exc
-            return local_time.replace(tzinfo=timezone(timedelta(hours=7))).astimezone(
-                timezone.utc
-            )
-
-    def group2_prediction_json(prediction):
-        return {
-            "recorded_at": isoformat_utc(prediction.timestamp),
-            "received_at": isoformat_utc(prediction.received_at),
-            **prediction.sensor_values,
-            "status": prediction.prediction_status,
-            "confidence": prediction.confidence,
-            "probabilitas": prediction.probabilities,
-            "defaulted_fields": prediction.defaulted_fields,
-        }
+    app.register_blueprint(moo_nitoring_bp)
 
     @app.errorhandler(ValidationError)
     def handle_validation_error(error):
@@ -186,172 +162,6 @@ def create_app(test_config=None):
         if page < 1 or per_page < 1 or per_page > 100:
             raise ValidationError("page must be positive and per_page must be between 1 and 100")
         return page, per_page
-
-    @app.post("/api/sensors")
-    def receive_group2_sensor():
-        body = get_json_object()
-        device = db.session.get(Device, "DEV_002")
-        if device is None:
-            return jsonify({
-                "error": {
-                    "code": "DEVICE_NOT_SEEDED",
-                    "message": "Run `flask --app app seed-dev002` before sending Group 2 data",
-                }
-            }), 409
-
-        sensor_ids = {
-            "temperature_c": "SNS_TEMP_002",
-            "humidity_rh": "SNS_HUMIDITY_002",
-            "sound_rms": "SNS_SOUND_002",
-            "mq135_raw": "SNS_MQ135_002",
-        }
-        for sensor_id in sensor_ids.values():
-            sensor = db.session.get(SensorRegistry, sensor_id)
-            if sensor is None or sensor.device_id != device.device_id:
-                return jsonify({
-                    "error": {
-                        "code": "SENSOR_REGISTRY_INCOMPLETE",
-                        "message": f"{sensor_id} is not registered for DEV_002",
-                    }
-                }), 409
-
-        values = {}
-        defaulted_fields = []
-        for feature in GROUP2_FEATURES:
-            if feature not in body and feature in {"sound_rms", "mq135_raw"}:
-                values[feature] = 0.0
-                defaulted_fields.append(feature)
-                continue
-            value = body.get(feature)
-            if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-                raise ValidationError(f"{feature} must be a finite number")
-            values[feature] = float(value)
-        if not 0 <= values["humidity_rh"] <= 100:
-            raise ValidationError("humidity_rh must be between 0 and 100")
-        for feature in ("sound_rms", "mq135_raw"):
-            if values[feature] < 0:
-                raise ValidationError(f"{feature} must be non-negative")
-        recorded_at = parse_group2_timestamp(body.get("recorded_at"))
-
-        try:
-            predictor = get_group2_model()
-            prediction_result = predictor.predict(values)
-        except Group2ModelUnavailable as exc:
-            app.logger.error("Group 2 model unavailable: %s", exc)
-            return jsonify({
-                "error": {
-                    "code": "MODEL_UNAVAILABLE",
-                    "message": "Group 2 model is not configured or could not be loaded",
-                }
-            }), 503
-
-        received_at = utc_now()
-        message_id = str(uuid4())
-        units = {
-            "temperature_c": "degC",
-            "humidity_rh": "%RH",
-            "sound_rms": "raw",
-            "mq135_raw": "raw",
-        }
-        quality = {
-            feature: "UNCERTAIN" if feature in defaulted_fields else "GOOD"
-            for feature in GROUP2_FEATURES
-        }
-        for feature, sensor_id in sensor_ids.items():
-            db.session.add(Telemetry(
-                message_id=message_id,
-                device_id=device.device_id,
-                sensor_id=sensor_id,
-                parameter=feature,
-                value=values[feature],
-                unit=units[feature],
-                quality=quality[feature],
-                timestamp=recorded_at,
-            ))
-        db.session.add(Group2Prediction(
-            device_id=device.device_id,
-            timestamp=recorded_at,
-            received_at=received_at,
-            sensor_values=values,
-            prediction_status=prediction_result["status"],
-            confidence=prediction_result["confidence"],
-            probabilities=prediction_result["probabilitas"],
-            defaulted_fields=defaulted_fields,
-        ))
-        device.connection_status = "ONLINE"
-        device.last_seen_at = received_at
-        db.session.commit()
-        return jsonify({
-            "message": "Data diterima",
-            "device_id": device.device_id,
-            "recorded_at": isoformat_utc(recorded_at),
-            **prediction_result,
-            "defaulted_fields": defaulted_fields,
-        }), 201
-
-    @app.get("/api/sensors/latest")
-    def get_group2_latest():
-        latest = db.session.scalars(
-            db.select(Group2Prediction)
-            .where(Group2Prediction.device_id == "DEV_002")
-            .order_by(Group2Prediction.id.desc())
-            .limit(1)
-        ).first()
-        if latest is None:
-            return jsonify({"message": "Belum ada data dari sensor"}), 204
-        return jsonify(group2_prediction_json(latest))
-
-    @app.get("/api/sensors/history")
-    def get_group2_history():
-        rows = db.session.scalars(
-            db.select(Group2Prediction)
-            .where(Group2Prediction.device_id == "DEV_002")
-            .order_by(Group2Prediction.id.desc())
-            .limit(50)
-        ).all()
-        rows.reverse()
-        return jsonify({
-            "total": len(rows),
-            "data": [group2_prediction_json(row) for row in rows],
-        })
-
-    @app.get("/health")
-    def group2_health():
-        try:
-            predictor = get_group2_model()
-        except Group2ModelUnavailable as exc:
-            app.logger.error("Group 2 model unavailable: %s", exc)
-            return jsonify({
-                "status": "error",
-                "error": {
-                    "code": "MODEL_UNAVAILABLE",
-                    "message": "Group 2 model is not configured or could not be loaded",
-                },
-            }), 503
-        return jsonify({
-            "status": "ok",
-            "model": predictor.metadata["model"],
-            "accuracy": predictor.metadata["accuracy"],
-            "classes": predictor.metadata["classes"],
-            "data_received": db.session.scalar(
-                db.select(func.count()).select_from(Group2Prediction)
-                .where(Group2Prediction.device_id == "DEV_002")
-            ) or 0,
-        })
-
-    @app.get("/model/info")
-    def group2_model_info():
-        try:
-            predictor = get_group2_model()
-        except Group2ModelUnavailable as exc:
-            app.logger.error("Group 2 model unavailable: %s", exc)
-            return jsonify({
-                "error": {
-                    "code": "MODEL_UNAVAILABLE",
-                    "message": "Group 2 model is not configured or could not be loaded",
-                }
-            }), 503
-        return jsonify(predictor.metadata)
 
     @app.get("/api/v1/health")
     def health():
@@ -494,6 +304,8 @@ def create_app(test_config=None):
             "active_event_count": db.session.scalar(
                 db.select(func.count()).select_from(FarmEvent).where(FarmEvent.state == "ACTIVE")
             ) or 0,
+            "total_ternak": 24,
+            "pakan_silo_kg": 203,
             "latest_telemetry_at": (
                 isoformat_utc(latest_telemetry_at) if latest_telemetry_at else None
             ),
@@ -527,7 +339,7 @@ def create_app(test_config=None):
         command_name = require_text(body.get("command"), "command", 64)
         if not COMMAND_PATTERN.fullmatch(command_name):
             raise ValidationError("command must use uppercase letters, digits, and underscores")
-        if device_id in {"DEV_003", "DEV_004"}:
+        if device_id in {"DEV_002", "DEV_003", "DEV_004"}:
             actuator = db.session.get(ActuatorRegistry, actuator_id)
             if actuator is None or actuator.device_id != device_id:
                 raise ValidationError(f"{actuator_id} is not registered for {device_id}")
@@ -535,6 +347,48 @@ def create_app(test_config=None):
                 raise ValidationError(
                     f"{command_name} is not supported by actuator {actuator_id}"
                 )
+        if device_id == "DEV_002":
+            if actuator_id in {"ACT_FAN_002", "ACT_LED_002"}:
+                state = parameters.get("state")
+                if (
+                    command_name != "SET_STATE"
+                    or not isinstance(state, str)
+                    or state not in {"ON", "OFF"}
+                ):
+                    raise ValidationError(f"{actuator_id} requires SET_STATE with state ON or OFF")
+                if actuator_id == "ACT_FAN_002":
+                    if state == "ON":
+                        active_sess = get_active_recovery_session("DEV_002")
+                        if active_sess is None:
+                            latest_pred = db.session.scalars(
+                                db.select(Group2Prediction)
+                                .where(Group2Prediction.device_id == "DEV_002")
+                                .order_by(Group2Prediction.id.desc())
+                                .limit(1)
+                            ).first()
+                            init_temp = float(latest_pred.sensor_values.get("temperature_c", 30.0)) if latest_pred else 30.0
+                            db.session.add(BarnRecoveryLog(
+                                device_id="DEV_002",
+                                actuator_id="ACT_FAN_002",
+                                start_time=utc_now(),
+                                initial_temperature=init_temp,
+                                target_temperature=29.5,
+                                evaluation_minutes=15,
+                                status="IN_PROGRESS",
+                                recommendation="Kipas aktif. Mengevaluasi respons pemulihan mikroklimat.",
+                            ))
+                    elif state == "OFF":
+                        active_sess = get_active_recovery_session("DEV_002")
+                        if active_sess:
+                            active_sess.status = "MANUAL_STOP"
+                            active_sess.end_time = utc_now()
+                            active_sess.duration_minutes = round(
+                                (as_utc(active_sess.end_time) - as_utc(active_sess.start_time)).total_seconds() / 60.0, 1
+                            )
+                            active_sess.recommendation = "Kipas dimatikan secara manual oleh operator."
+            elif actuator_id == "ACT_BUZZER_002":
+                if command_name not in {"ALERT", "CLEAR"}:
+                    raise ValidationError("ACT_BUZZER_002 requires command ALERT or CLEAR")
         if device_id == "DEV_003":
             state = parameters.get("state")
             if (
@@ -643,6 +497,14 @@ def create_app(test_config=None):
     @app.get("/dashboard")
     def serve_frontend_dashboard():
         frontend_dir = Path(app.root_path).parent / "frontend"
+        return send_from_directory(frontend_dir, "dashboard_smart_farm.html")
+
+    @app.get("/moo-nitoring")
+    def serve_frontend_moo_nitoring():
+        frontend_dir = Path(app.root_path).parent / "frontend"
+        moo_file = frontend_dir / "moo_nitoring.html"
+        if moo_file.is_file():
+            return send_from_directory(frontend_dir, "moo_nitoring.html")
         return send_from_directory(frontend_dir, "dashboard_smart_farm.html")
 
     @app.get("/css/<path:filename>")
@@ -871,8 +733,48 @@ def create_app(test_config=None):
                         unit=unit,
                         sensor_metadata={"group": 2},
                     ))
+
+            actuator_specs = (
+                (
+                    "ACT_FAN_002",
+                    "RELAY_FAN_5V",
+                    ["SET_STATE"],
+                    {"controller": "ESP32", "pin": "GPIO26", "function": "Mini Fan 5V Cooling"},
+                ),
+                (
+                    "ACT_LED_002",
+                    "LIGHTING_CIRCADIAN",
+                    ["SET_STATE"],
+                    {"controller": "ESP32", "pin": "GPIO27", "schedule": "RTC DS3231"},
+                ),
+                (
+                    "ACT_BUZZER_002",
+                    "AUDIBLE_ALARM",
+                    ["ALERT", "CLEAR"],
+                    {"controller": "ESP32", "pin": "GPIO14", "type": "Active Buzzer"},
+                ),
+            )
+            for actuator_id, actuator_type, commands, metadata in actuator_specs:
+                existing = db.session.get(ActuatorRegistry, actuator_id)
+                if existing and existing.device_id != "DEV_002":
+                    raise ClickException(
+                        f"{actuator_id} is already assigned to another device"
+                    )
+                if existing:
+                    existing.actuator_type = actuator_type
+                    existing.supported_commands = commands
+                    existing.actuator_metadata = metadata
+                else:
+                    db.session.add(ActuatorRegistry(
+                        actuator_id=actuator_id,
+                        device_id="DEV_002",
+                        actuator_type=actuator_type,
+                        supported_commands=commands,
+                        actuator_metadata=metadata,
+                    ))
+
             db.session.commit()
-        print("DEV_002 and its sensors are registered.")
+        print("DEV_002, its sensors, and actuators are registered.")
 
     @app.cli.command("seed-dev003")
     def seed_dev003_command():

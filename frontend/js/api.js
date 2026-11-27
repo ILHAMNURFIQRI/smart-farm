@@ -36,6 +36,12 @@
                     DEV_004: []
                 },
                 group2Latest: null,
+                group2History: [],
+                kandangStatus: null,
+                kandangRecoveryHistory: null,
+                kandangEarlyWarning: null,
+                kandangAutomation: null,
+                kandangSanitation: [],
                 events: []
             };
         }
@@ -152,17 +158,51 @@
             return await this.request(`/api/v1/commands/${encodeURIComponent(commandId)}`);
         }
 
-        // Group 2 Endpoints
+        // Group 2 (Moo-nitoring Kandang) Endpoints
         async getGroup2Latest() {
             return await this.request('/api/sensors/latest');
         }
 
-        async getGroup2History() {
-            return await this.request('/api/sensors/history');
+        async getGroup2History(period = 'day', limit = 50) {
+            return await this.request(`/api/sensors/history?period=${encodeURIComponent(period)}&limit=${limit}`);
         }
 
         async postGroup2Sensors(payload) {
             return await this.request('/api/sensors', {
+                method: 'POST',
+                body: payload
+            });
+        }
+
+        async getKandangStatus() {
+            return await this.request('/api/v1/kandang/status');
+        }
+
+        async getKandangEarlyWarning() {
+            return await this.request('/api/v1/kandang/early-warning');
+        }
+
+        async getKandangRecoveryHistory() {
+            return await this.request('/api/v1/kandang/recovery-history');
+        }
+
+        async getKandangAutomation() {
+            return await this.request('/api/v1/kandang/automation');
+        }
+
+        async updateKandangAutomation(settings) {
+            return await this.request('/api/v1/kandang/automation', {
+                method: 'POST',
+                body: settings
+            });
+        }
+
+        async getKandangSanitation() {
+            return await this.request('/api/v1/kandang/sanitation');
+        }
+
+        async createKandangSanitation(payload) {
+            return await this.request('/api/v1/kandang/sanitation', {
                 method: 'POST',
                 body: payload
             });
@@ -190,11 +230,26 @@
                 }
 
                 // Fetch core dashboard data in parallel
-                const [summaryRes, devicesRes, eventsRes, g2Res] = await Promise.allSettled([
+                const [
+                    summaryRes,
+                    devicesRes,
+                    eventsRes,
+                    g2Res,
+                    kandangStatusRes,
+                    kandangRecRes,
+                    kandangAutoRes,
+                    kandangSanRes,
+                    g2HistRes
+                ] = await Promise.allSettled([
                     this.getSummary(),
                     this.getDevices(),
                     this.getEvents({ per_page: 15 }),
-                    this.getGroup2Latest()
+                    this.getGroup2Latest(),
+                    this.getKandangStatus(),
+                    this.getKandangRecoveryHistory(),
+                    this.getKandangAutomation(),
+                    this.getKandangSanitation(),
+                    this.getGroup2History('day', 40)
                 ]);
 
                 if (summaryRes.status === 'fulfilled') {
@@ -213,6 +268,26 @@
 
                 if (g2Res.status === 'fulfilled') {
                     this.state.group2Latest = g2Res.value;
+                }
+
+                if (kandangStatusRes.status === 'fulfilled') {
+                    this.state.kandangStatus = kandangStatusRes.value;
+                }
+
+                if (kandangRecRes.status === 'fulfilled') {
+                    this.state.kandangRecoveryHistory = kandangRecRes.value;
+                }
+
+                if (kandangAutoRes.status === 'fulfilled' && kandangAutoRes.value.automation) {
+                    this.state.kandangAutomation = kandangAutoRes.value.automation;
+                }
+
+                if (kandangSanRes.status === 'fulfilled' && kandangSanRes.value.items) {
+                    this.state.kandangSanitation = kandangSanRes.value.items;
+                }
+
+                if (g2HistRes.status === 'fulfilled' && g2HistRes.value.data) {
+                    this.state.group2History = g2HistRes.value.data;
                 }
 
                 // Telemetry for active devices

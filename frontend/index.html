@@ -2,13 +2,18 @@
 <html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=dashboard_smart_farm.html">
-    <title>Smart Farm Dashboard Redirect</title>
+    <meta http-equiv="refresh" content="0; url=/moo-nitoring">
+    <title>SmartFarm Portal</title>
     <script>
-        window.location.replace("dashboard_smart_farm.html");
+        window.location.replace("/moo-nitoring");
     </script>
 </head>
-<body style="font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f4f5;">
-    <p>Mengarahkan ke <a href="dashboard_smart_farm.html" style="color: #10b981; font-weight: bold;">Smart Farm Dashboard...</a></p>
+<body style="font-family: 'Plus Jakarta Sans', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f4f3ef; color: #18191d;">
+    <h2 style="font-weight: 300; margin-bottom: 8px;">SmartFarm MES System</h2>
+    <p style="font-size: 14px; color: #71717a; margin-bottom: 24px;">Pilih halaman yang ingin dibuka:</p>
+    <div style="display: flex; gap: 12px;">
+        <a href="moo_nitoring.html" style="background: #18191d; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 9999px; font-size: 13px; font-weight: 600;">Moo-nitoring Kandang</a>
+        <a href="dashboard_smart_farm.html" style="background: #ffffff; color: #18191d; border: 1px solid rgba(0,0,0,0.1); text-decoration: none; padding: 10px 20px; border-radius: 9999px; font-size: 13px; font-weight: 600;">Dashboard Terpadu</a>
+    </div>
 </body>
 </html>
