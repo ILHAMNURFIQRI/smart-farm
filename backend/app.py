@@ -588,6 +588,18 @@ def create_app(test_config=None):
                 topic_for(device, "command", app.config["MQTT_TOPIC_PREFIX"]),
                 create_command_message(device, record),
             )
+            if device_id == "DEV_003" and hasattr(service, "client") and hasattr(service.client, "publish"):
+                try:
+                    state_val = parameters.get("state", "OFF")
+                    if actuator_id == "ACT_PUMP_003":
+                        service.client.publish("smartfeeding/pump/command", state_val, qos=1)
+                    elif actuator_id == "ACT_FEEDER_MOTOR_003":
+                        service.client.publish("smartfeeding/conveyor/command", state_val, qos=1)
+                        if "speed_percent" in parameters:
+                            speed_pwm = int(parameters["speed_percent"] * 255 / 100)
+                            service.client.publish("smartfeeding/conveyor/speed", str(speed_pwm), qos=1)
+                except Exception as leg_err:
+                    app.logger.warning("Legacy publish ignored: %s", leg_err)
         except (RuntimeError, TimeoutError) as error:
             record.status = "FAILED"
             db.session.commit()

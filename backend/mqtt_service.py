@@ -7,6 +7,8 @@ from typing import Any
 import paho.mqtt.client as mqtt
 from sqlalchemy.exc import IntegrityError
 
+from uuid import uuid4
+
 from models import (
     Device,
     DeviceCommand,
@@ -131,6 +133,7 @@ class MQTTService:
             prefix = self.app.config["MQTT_TOPIC_PREFIX"]
             client.subscribe(f"{prefix}/farm/+/barn/+/zone/+/device/+/{suffix}", qos=1)
             client.subscribe(f"{prefix}/farm/+/barn/+/device/+/{suffix}", qos=1)
+        client.subscribe("smartfeeding/#", qos=1)
         logger.info("Connected to MQTT broker and subscribed to inbound device topics")
 
     def _on_connect_fail(self, _client, _userdata) -> None:
@@ -147,7 +150,11 @@ class MQTTService:
     def _on_message(self, _client, _userdata, message) -> None:
         with self.app.app_context():
             try:
-                payload = json.loads(message.payload.decode("utf-8"))
+                raw_payload = message.payload.decode("utf-8")
+                if message.topic.startswith("smartfeeding/"):
+                    process_legacy_smartfeeding_message(message.topic, raw_payload)
+                    return
+                payload = json.loads(raw_payload)
                 process_incoming_message(
                     message.topic,
                     payload,
@@ -159,6 +166,71 @@ class MQTTService:
             except Exception:
                 db.session.rollback()
                 logger.exception("Failed to process MQTT message topic=%s", message.topic)
+
+
+def process_legacy_smartfeeding_message(topic: str, raw_payload: str) -> bool:
+    device = db.session.get(Device, "DEV_003")
+    if device is None:
+        return False
+    now = utc_now()
+    device.last_seen_at = now
+    device.connection_status = "ONLINE"
+
+    if topic in {"smartfeeding/rtc/data", "smartfeeding/feed/level"}:
+        try:
+            data = json.loads(raw_payload)
+        except json.JSONDecodeError:
+            return False
+        msg_id = str(uuid4())
+        readings = []
+        if "jarak_cm" in data and data["jarak_cm"] is not None:
+            readings.append(("SNS_ULTRASONIC_003", "distance_cm", float(data["jarak_cm"]), "cm"))
+        if "feed_level" in data and data["feed_level"] is not None:
+            readings.append(("SNS_ULTRASONIC_003", "feed_level_percent", float(data["feed_level"]), "%"))
+        if "feed_status" in data and data["feed_status"]:
+            readings.append(("SNS_ULTRASONIC_003", "feed_status", str(data["feed_status"]), "state"))
+        if "water_level" in data and data["water_level"] is not None:
+            readings.append(("SNS_WATER_LEVEL_003", "water_level_percent", float(data["water_level"]), "%"))
+
+        for sensor_id, param, val, unit in readings:
+            db.session.add(
+                Telemetry(
+                    message_id=msg_id,
+                    device_id="DEV_003",
+                    sensor_id=sensor_id,
+                    parameter=param,
+                    value=val,
+                    unit=unit,
+                    quality="GOOD",
+                    timestamp=now,
+                )
+            )
+        db.session.commit()
+        return True
+    elif topic == "smartfeeding/water/level":
+        try:
+            data = json.loads(raw_payload)
+            if "water_level" in data and data["water_level"] is not None:
+                db.session.add(
+                    Telemetry(
+                        message_id=str(uuid4()),
+                        device_id="DEV_003",
+                        sensor_id="SNS_WATER_LEVEL_003",
+                        parameter="water_level_percent",
+                        value=float(data["water_level"]),
+                        unit="%",
+                        quality="GOOD",
+                        timestamp=now,
+                    )
+                )
+                db.session.commit()
+                return True
+        except (json.JSONDecodeError, ValueError):
+            return False
+    elif topic in {"smartfeeding/pump/status", "smartfeeding/conveyor/status"}:
+        db.session.commit()
+        return True
+    return False
 
 
 def process_incoming_message(
