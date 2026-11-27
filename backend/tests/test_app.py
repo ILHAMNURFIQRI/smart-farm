@@ -11,7 +11,7 @@ from models import (
     Telemetry,
     db,
 )
-from mqtt_service import parse_topic, process_incoming_message
+from mqtt_service import parse_topic, process_incoming_message, process_legacy_smartfeeding_message
 from schemas import ValidationError, validate_envelope
 
 
@@ -563,6 +563,27 @@ class BackendTests(unittest.TestCase):
             headers=headers,
         )
         self.assertEqual(invalid.status_code, 400)
+
+    def test_group3_legacy_smartfeeding_bridge(self):
+        self.app.test_cli_runner().invoke(args=["seed-dev003"])
+        legacy_payload = (
+            '{"tanggal":"27/11/2026","waktu":"12:00:00",'
+            '"jarak_cm":14.5,"feed_level":51.7,"feed_status":"NORMAL",'
+            '"water_raw":1250,"water_level":73.4,"water_status":"NORMAL",'
+            '"pump_status":"OFF","conveyor_status":"OFF","conveyor_speed":200}'
+        )
+        result = process_legacy_smartfeeding_message("smartfeeding/rtc/data", legacy_payload)
+        self.assertTrue(result)
+        device = db.session.get(Device, "DEV_003")
+        self.assertEqual(device.connection_status, "ONLINE")
+        readings = {
+            t.parameter: t.value
+            for t in db.session.query(Telemetry).filter_by(device_id="DEV_003").all()
+        }
+        self.assertEqual(readings["distance_cm"], 14.5)
+        self.assertEqual(readings["feed_level_percent"], 51.7)
+        self.assertEqual(readings["feed_status"], "NORMAL")
+        self.assertEqual(readings["water_level_percent"], 73.4)
 
 
 if __name__ == "__main__":
