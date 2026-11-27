@@ -1,0 +1,16 @@
+{
+  "model": "RandomForestClassifier",
+  "features": [
+    "temperature_c",
+    "humidity_rh",
+    "sound_rms",
+    "mq135_raw"
+  ],
+  "classes": [
+    "Kritis",
+    "Normal",
+    "Warning"
+  ],
+  "accuracy": 1.0,
+  "description": "Moo-Nitoring Kandang Sapi environmental condition model trained on baseline and THI augmented data."
+}
