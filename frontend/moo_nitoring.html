@@ -1,0 +1,1274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moo-nitoring Kandang · SmartFarm Crextio</title>
+
+    <!-- Google Fonts & Tailwind -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F4F3EF;
+            color: #18191D;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .bento-card {
+            background: #FFFFFF;
+            border: 1px solid rgba(24, 25, 29, 0.05);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02), 0 1px 2px -1px rgba(0, 0, 0, 0.02);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .bento-card:hover {
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.05);
+        }
+
+        .fan-spin {
+            animation: spin 1.2s linear infinite;
+        }
+        @keyframes spin {
+            100% { transform: rotate(360deg); }
+        }
+
+        .led-glow {
+            box-shadow: 0 0 20px 4px rgba(251, 191, 36, 0.45);
+        }
+
+        .sensor-chart {
+            min-height: 295px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #F4F3EF;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #D1D5DB;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="min-h-screen p-4 sm:p-6 lg:p-8">
+
+    <!-- Top Navigation Header -->
+    <header class="max-w-7xl mx-auto mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <a href="/dashboard" class="flex items-center gap-2.5 group">
+                <div class="h-10 w-10 rounded-2xl bg-white border border-black/[0.06] flex items-center justify-center shadow-xs group-hover:scale-105 transition-transform">
+                    <svg class="w-5 h-5 text-emerald-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v18m-6-6l6 6 6-6M6 9l6-6 6 6"/>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-base font-bold text-zinc-900 tracking-tight flex items-center gap-1.5">
+                        <span>SmartFarm</span>
+                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">K2</span>
+                    </h1>
+                    <p class="text-[11px] text-zinc-400 font-medium">Sistem Monitoring Terpadu</p>
+                </div>
+            </a>
+
+            <!-- Sub Nav Pills -->
+            <nav class="hidden sm:flex items-center gap-1.5 ml-4 pl-4 border-l border-black/[0.06] text-xs">
+                <a href="/dashboard" class="px-3 py-1.5 rounded-full text-zinc-500 hover:text-zinc-900 hover:bg-white/80 transition font-medium">Dashboard</a>
+                <a href="/dashboard#collar" class="px-3 py-1.5 rounded-full text-zinc-500 hover:text-zinc-900 hover:bg-white/80 transition font-medium">Smart Collar</a>
+                <span class="px-3.5 py-1.5 rounded-full bg-[#18191D] text-white font-semibold shadow-xs">Moo-nitoring Kandang</span>
+                <a href="/dashboard#feeding" class="px-3 py-1.5 rounded-full text-zinc-500 hover:text-zinc-900 hover:bg-white/80 transition font-medium">Smart Feeding</a>
+                <a href="/dashboard#gate" class="px-3 py-1.5 rounded-full text-zinc-500 hover:text-zinc-900 hover:bg-white/80 transition font-medium">Smart Gate</a>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-3 self-end md:self-auto">
+            <div id="backend-status-pill" class="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-black/[0.06] text-xs font-semibold text-zinc-700 shadow-2xs">
+                <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Backend: LIVE (5000)</span>
+            </div>
+            <div class="px-3 py-1 rounded-full bg-white border border-black/[0.06] font-mono text-xs text-zinc-700 font-medium shadow-2xs flex items-center gap-1.5">
+                <span class="text-[10px] font-bold text-zinc-400">WIB</span>
+                <span id="live-clock">--:--:--</span>
+            </div>
+            <a href="/dashboard" class="h-9 w-9 rounded-full bg-white border border-black/[0.06] flex items-center justify-center text-zinc-600 hover:text-zinc-900 shadow-2xs transition" title="Kembali ke Dashboard Utama">
+                <i class="fa-solid fa-house text-xs"></i>
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Moo-nitoring Container -->
+    <main class="max-w-7xl mx-auto space-y-6">
+
+        <!-- Page Header Banner with Dynamic KPIs -->
+        <div class="rounded-3xl p-6 sm:p-7 bg-white border border-black/[0.05] shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-6">
+            <div>
+                <div class="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200/80 px-3 py-1 text-xs font-semibold text-emerald-800 mb-2">
+                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Smart Farm / K2 — Mikroklimat &amp; Otomasi Kandang</span>
+                </div>
+                <h2 class="text-2xl sm:text-3xl font-light text-zinc-900 tracking-tight">Moo-nitoring Kandang</h2>
+                <p class="text-xs text-zinc-500 mt-1 max-w-2xl leading-relaxed">
+                    Pemantauan mikroklimat kandang: suhu, kelembaban, gas amonia (NH₃), kebisingan akustik, dan kontrol aktuator sirkulasi udara
+                </p>
+            </div>
+
+            <!-- Dynamic Editorial Header KPIs -->
+            <div class="flex items-center gap-8 sm:gap-10 shrink-0 pt-4 xl:pt-0 border-t xl:border-t-0 border-black/[0.05]">
+                <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-center justify-center h-9 w-9 rounded-full bg-[#FAF9F5] border border-black/[0.06] text-zinc-500">
+                        <i class="fa-solid fa-cow text-sm"></i>
+                    </div>
+                    <div>
+                        <div id="kpi-total-ternak" class="text-3xl sm:text-4xl font-light text-zinc-900 tracking-tight tabular-nums font-mono">24</div>
+                        <p class="text-[10px] uppercase font-semibold text-zinc-400 -mt-0.5">Total Ternak</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-center justify-center h-9 w-9 rounded-full bg-[#FAF9F5] border border-black/[0.06] text-zinc-500">
+                        <i class="fa-solid fa-wifi text-sm text-emerald-600"></i>
+                    </div>
+                    <div>
+                        <div id="kpi-iot-online" class="text-3xl sm:text-4xl font-light text-zinc-900 tracking-tight tabular-nums font-mono">1</div>
+                        <p class="text-[10px] uppercase font-semibold text-zinc-400 -mt-0.5">IoT Online</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="flex flex-col items-center justify-center h-9 w-9 rounded-full bg-[#FAF9F5] border border-black/[0.06] text-zinc-500">
+                        <i class="fa-solid fa-boxes-stacked text-sm"></i>
+                    </div>
+                    <div>
+                        <div id="kpi-pakan-silo" class="text-3xl sm:text-4xl font-light text-zinc-900 tracking-tight tabular-nums font-mono">203</div>
+                        <p class="text-[10px] uppercase font-semibold text-zinc-400 -mt-0.5">kg Pakan Silo</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictive Early Warning Banner (Moo-nitoring ML) -->
+        <div id="kandang-early-warning-banner" class="rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-white via-white to-amber-50/40 border border-black/[0.06] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="flex items-start sm:items-center gap-3.5">
+                <div id="ew-icon-box" class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 transition-colors">
+                    <i id="ew-icon" class="fa-solid fa-chart-line text-base"></i>
+                </div>
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Prediksi Dini Mikroklimat · Horizon 15 Menit</span>
+                        <span id="ew-trend-badge" class="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                            <span id="ew-trend-dot" class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span id="ew-trend-label">STABIL</span>
+                        </span>
+                    </div>
+                    <p id="ew-message" class="text-xs sm:text-sm font-semibold text-zinc-800 mt-0.5">Parameter suhu dan kelembapan stabil dalam batas pemantauan ideal.</p>
+                    <p id="ew-recommendation" class="text-xs text-zinc-500 mt-0.5">Rekomendasi: Lakukan pemantauan rutin berkala.</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-5 border-t md:border-t-0 md:border-l border-black/[0.05] pt-3 md:pt-0 md:pl-5 shrink-0">
+                <div>
+                    <span class="block text-[10px] uppercase font-semibold text-zinc-400">Suhu Terkini</span>
+                    <p id="ew-current-temp" class="text-lg font-light text-zinc-900 font-mono tabular-nums">29.0<span class="text-xs text-zinc-400 font-normal ml-0.5">°C</span></p>
+                </div>
+                <div class="text-zinc-300">
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </div>
+                <div>
+                    <span class="block text-[10px] uppercase font-semibold text-zinc-400">Estimasi +15m</span>
+                    <p id="ew-est-temp" class="text-lg font-bold text-zinc-900 font-mono tabular-nums">29.0<span class="text-xs text-zinc-400 font-normal ml-0.5">°C</span></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Grid: Comfort Score Dial & Actuator Controls -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Circular Comfort Score Hero Widget -->
+            <article class="bento-card p-6 flex flex-col justify-between rounded-[28px]">
+                <div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Kandang Index</span>
+                        <span class="rounded-full bg-[#F8F7F3] border border-black/[0.04] px-2.5 py-0.5 text-[10px] font-semibold text-zinc-600">Blok A · DEV_002</span>
+                    </div>
+                    <h4 id="comfort-title" class="text-base font-bold text-zinc-900 mt-2">Kandang Comfort Score</h4>
+
+                    <div class="my-5 flex items-center justify-center">
+                        <div class="relative flex h-40 w-40 items-center justify-center">
+                            <svg class="h-full w-full -rotate-90 transform" viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="42" fill="none" stroke="#F4F3EF" stroke-width="8"></circle>
+                                <circle id="comfort-arc" cx="50" cy="50" r="42" fill="none" stroke="#10B981" stroke-width="8" stroke-dasharray="264" stroke-dashoffset="40" stroke-linecap="round" class="transition-all duration-700"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                                <span id="comfort-score" class="font-mono text-4xl font-light tracking-tight text-zinc-900 tabular-nums">85</span>
+                                <span class="text-[11px] font-semibold text-zinc-400">/ 100 INDEKS</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <div class="h-1.5 w-full rounded-full bg-zinc-100 overflow-hidden">
+                            <div id="comfort-bar" class="h-full rounded-full bg-[#10B981] transition-all duration-500" style="width: 85%;"></div>
+                        </div>
+                    </div>
+                </div>
+                <p id="comfort-description" class="mt-4 text-xs leading-relaxed text-zinc-500">Kondisi mikroklimat kandang optimal, ternak terhindar dari stres panas.</p>
+            </article>
+
+            <!-- Actuator Controls with Spinning Fan, Glowing LED & Buzzer -->
+            <article class="bento-card p-6 lg:col-span-2 flex flex-col justify-between rounded-[28px]">
+                <div>
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-black/[0.04] gap-2">
+                        <div>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Manajemen Perangkat Fisik</span>
+                            <h4 class="text-base font-bold text-zinc-900">Kontrol Aktuator Kandang</h4>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <button type="button" onclick="openAutomationSettingsModal()" class="rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-3 py-1 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
+                                <i class="fa-solid fa-sliders text-[11px] text-zinc-500"></i>
+                                <span>Atur Otomasi</span>
+                            </button>
+                            <span class="rounded-full bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">ESP32 Relay &amp; Buzzer</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-zinc-400 mt-2 mb-4">Sirkulasi udara exhaust, pencahayaan sirkadian, dan alarm buzzer akustik.</p>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <!-- Fan Control -->
+                        <div class="rounded-2xl border border-black/[0.04] bg-[#FAF9F5] p-4 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] uppercase font-bold text-zinc-500">Ventilasi Silang</span>
+                                <input type="checkbox" id="toggle-fan" class="h-4 w-4 rounded accent-emerald-600 cursor-pointer" onchange="toggleFanManual(this.checked)">
+                            </div>
+                            <h5 class="text-xs font-bold text-zinc-800 mt-1">Kipas Exhaust (5V)</h5>
+                            <div class="my-3 flex items-center justify-center">
+                                <div id="fan-icon-box" class="h-12 w-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center text-zinc-400 transition-colors shadow-2xs">
+                                    <i id="fan-icon" class="fa-solid fa-fan text-lg"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span id="fan-status-dot" class="inline-flex items-center gap-1 text-zinc-500 font-medium">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-zinc-400"></span>
+                                        <span id="fan-status-text">Standby</span>
+                                    </span>
+                                </div>
+                                <span class="block text-[9px] text-zinc-400 font-mono mt-0.5">Relay GPIO 26 · Reduksi Panas</span>
+                            </div>
+                        </div>
+
+                        <!-- LED Sirkadian Control -->
+                        <div class="rounded-2xl border border-black/[0.04] bg-[#FAF9F5] p-4 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] uppercase font-bold text-zinc-500">Sirkadian</span>
+                                <input type="checkbox" id="toggle-led" class="h-4 w-4 rounded accent-amber-500 cursor-pointer" onchange="toggleLedManual(this.checked)">
+                            </div>
+                            <h5 class="text-xs font-bold text-zinc-800 mt-1">Lampu LED 4000K</h5>
+                            <div class="my-3 flex items-center justify-center">
+                                <div id="led-icon-box" class="h-12 w-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center text-zinc-400 transition-all shadow-2xs">
+                                    <i id="led-icon" class="fa-solid fa-lightbulb text-lg"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span id="led-status-dot" class="inline-flex items-center gap-1 text-zinc-500 font-medium">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-zinc-400"></span>
+                                        <span id="led-status-text">Padam</span>
+                                    </span>
+                                </div>
+                                <span class="block text-[9px] text-zinc-400 font-mono mt-0.5">Relay GPIO 27 · Jadwal 18:00</span>
+                            </div>
+                        </div>
+
+                        <!-- Buzzer Control -->
+                        <div class="rounded-2xl border border-black/[0.04] bg-[#FAF9F5] p-4 flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] uppercase font-bold text-zinc-500">Alarm Bahaya</span>
+                                <input type="checkbox" id="toggle-buzzer" class="h-4 w-4 rounded accent-rose-600 cursor-pointer" onchange="toggleBuzzerManual(this.checked)">
+                            </div>
+                            <h5 class="text-xs font-bold text-zinc-800 mt-1">Buzzer Peringatan</h5>
+                            <div class="my-3 flex items-center justify-center">
+                                <div id="buzzer-icon-box" class="h-12 w-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center text-zinc-400 transition-colors shadow-2xs">
+                                    <i id="buzzer-icon" class="fa-solid fa-bell-slash text-lg"></i>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center justify-between text-[11px]">
+                                    <span id="buzzer-status-dot" class="inline-flex items-center gap-1 text-zinc-500 font-medium">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-zinc-400"></span>
+                                        <span id="buzzer-status-text">Siaga</span>
+                                    </span>
+                                    <button type="button" onclick="testBuzzerBeep()" class="text-[10px] font-bold text-rose-600 hover:underline">Uji Bunyi</button>
+                                </div>
+                                <span class="block text-[9px] text-zinc-400 font-mono mt-0.5">Pin: GPIO 14</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4 pt-3 border-t border-black/[0.04] flex flex-wrap items-center justify-between text-[11px] text-zinc-400">
+                    <span>Aktuator disinkronkan secara nirkabel via HTTP / MQTT dengan node ESP32 kandang.</span>
+                    <span class="font-mono text-zinc-500">Latency: ~24ms</span>
+                </div>
+            </article>
+        </div>
+
+        <!-- Middle Grid: Sanitasi Kandang (with Clean Bottom-Right Button) & Sensor Health Status -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+            <!-- Card 1: Rekomendasi Pembersihan (Sanitasi Kandang) -->
+            <article class="bento-card p-6 flex flex-col justify-between rounded-[28px]">
+                <div>
+                    <div class="flex items-center justify-between pb-3 border-b border-black/[0.04]">
+                        <div class="flex items-center gap-2.5">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                                <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                            </div>
+                            <div>
+                                <span class="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400">K2 · Sanitasi Kandang</span>
+                                <h4 class="text-sm font-bold text-zinc-900 tracking-tight">Rekomendasi Pembersihan</h4>
+                            </div>
+                        </div>
+                        <span id="cleaning-badge" class="rounded-full bg-emerald-50 border border-emerald-200/80 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">Optimal</span>
+                    </div>
+
+                    <div class="my-4 rounded-2xl bg-[#FAF9F5] p-4 border border-black/[0.03]">
+                        <span class="block text-[10px] uppercase font-bold text-zinc-400 mb-1">Diagnosis Otomatis</span>
+                        <p id="cleaning-diagnosis" class="text-xs text-zinc-700 leading-relaxed font-medium">
+                            Kondisi kandang relatif bersih. Pertahankan siklus pembersihan harian dan kontrol kelembapan lantai.
+                        </p>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white border border-black/[0.04]">
+                            <span class="flex items-center gap-2 font-medium text-zinc-700">
+                                <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
+                                <span>Gas Amonia (NH₃)</span>
+                            </span>
+                            <span id="cleaning-gas-ppm" class="font-mono font-bold text-zinc-900">3 ppm <span class="text-[10px] font-normal text-emerald-600 ml-1">Normal</span></span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 rounded-xl bg-white border border-black/[0.04]">
+                            <span class="flex items-center gap-2 font-medium text-zinc-700">
+                                <span class="h-2 w-2 rounded-full bg-sky-500"></span>
+                                <span>Kelembapan Udara (RH)</span>
+                            </span>
+                            <span id="cleaning-rh-val" class="font-mono font-bold text-zinc-900">76% <span class="text-[10px] font-normal text-sky-600 ml-1">Ideal</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Status & Action Button Aligned to Bottom Right -->
+                <div class="pt-4 border-t border-black/[0.04] flex items-center justify-between gap-3 mt-4">
+                    <div class="min-w-0">
+                        <span class="block text-[10px] uppercase font-semibold text-zinc-400">Status Tindakan</span>
+                        <p id="cleaning-status" class="text-xs font-semibold text-emerald-800 truncate">Terawat baik · Kondisi Aman</p>
+                    </div>
+                    <button type="button" onclick="openSanitationModal()" class="rounded-full bg-[#18191D] hover:bg-zinc-800 text-white px-4 py-2 text-xs font-bold transition shadow-2xs shrink-0 cursor-pointer flex items-center gap-1.5 ml-auto">
+                        <i class="fa-solid fa-calendar-check text-[11px] text-emerald-400"></i>
+                        <span>Catat Pembersihan</span>
+                    </button>
+                </div>
+            </article>
+
+            <!-- Card 2: Pemantauan Kondisi Sensor (Structured Diagnostic Grid) -->
+            <article class="bento-card p-6 sm:p-7 lg:col-span-2 rounded-[28px] flex flex-col justify-between gap-4">
+                <div>
+                    <div class="mb-4 flex items-center justify-between gap-3 pb-3 border-b border-black/[0.04]">
+                        <div>
+                            <h4 class="text-base font-bold text-zinc-900">Pemantauan Kondisi Sensor</h4>
+                            <p id="sensor-health-summary" class="text-xs text-emerald-700 font-semibold mt-0.5">Semua parameter sensor dalam rentang optimal.</p>
+                        </div>
+                        <span class="flex items-center gap-1.5 text-[10px] font-mono font-semibold text-zinc-400">
+                            <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>Real-time Sampling (5s)</span>
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div class="p-4 rounded-2xl bg-[#FAF9F5] border border-black/[0.03]">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-zinc-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-fire text-amber-500 text-[11px]"></i>
+                                    <span>Indeks THI Sapi</span>
+                                </span>
+                                <span id="thi-status-chip" class="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">Normal</span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span id="thi-pts-val" class="text-2xl font-light font-mono text-zinc-900 tabular-nums">80.8</span>
+                                <span class="text-xs text-zinc-400">pts</span>
+                            </div>
+                            <p id="thi-tip" class="text-[11px] text-zinc-500 mt-1">THI &lt; 82: Sapi berada pada kenyamanan fisiologis normal.</p>
+                        </div>
+
+                        <div class="p-4 rounded-2xl bg-[#FAF9F5] border border-black/[0.03]">
+                            <div class="flex items-center justify-between mb-1.5">
+                                <span class="text-xs font-bold text-zinc-800 flex items-center gap-1.5">
+                                    <i class="fa-solid fa-droplet text-sky-500 text-[11px]"></i>
+                                    <span>Kelembapan Udara (RH)</span>
+                                </span>
+                                <span id="rh-status-chip" class="rounded-full bg-sky-100 text-sky-800 px-2 py-0.5 text-[10px] font-bold">Ideal</span>
+                            </div>
+                            <div class="flex items-baseline gap-2">
+                                <span id="rh-percent-val" class="text-2xl font-light font-mono text-zinc-900 tabular-nums">76.0</span>
+                                <span class="text-xs text-zinc-400">%</span>
+                            </div>
+                            <p class="text-[11px] text-zinc-500 mt-1">Rentang ideal kelembaban kandang tropis: 60% – 80% RH.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-black/[0.04] flex flex-wrap items-center justify-between text-[11px] text-zinc-400">
+                    <span>Ambang Ideal: Suhu &lt; 30°C · RH 60-80% · NH₃ &lt; 18 ppm · Suara &lt; 0.05 RMS</span>
+                    <span class="font-mono text-emerald-700 font-semibold">ESP32 DEV_002</span>
+                </div>
+            </article>
+        </div>
+
+        <!-- 5 Clean Sensor Bento Cards (Moo-nitoring Sensor Suite) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <!-- Suhu Udara -->
+            <article class="p-5 rounded-[24px] bg-white border border-black/[0.05] shadow-xs flex flex-col justify-between hover:shadow-sm transition">
+                <div>
+                    <div class="flex items-center justify-between text-zinc-400">
+                        <i class="fa-solid fa-temperature-half text-amber-500"></i>
+                        <span class="text-[10px] font-mono">DHT22</span>
+                    </div>
+                    <div class="my-3">
+                        <div class="text-3xl font-light text-zinc-900 font-mono tabular-nums"><span id="val-temp">29.0</span><span class="text-base text-zinc-400 font-normal ml-0.5">°C</span></div>
+                        <p class="text-[11px] font-semibold text-zinc-700 mt-0.5">Suhu Udara</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full w-fit">Normal</span>
+            </article>
+
+            <!-- Kelembapan -->
+            <article class="p-5 rounded-[24px] bg-white border border-black/[0.05] shadow-xs flex flex-col justify-between hover:shadow-sm transition">
+                <div>
+                    <div class="flex items-center justify-between text-zinc-400">
+                        <i class="fa-solid fa-droplet text-sky-500"></i>
+                        <span class="text-[10px] font-mono">DHT22</span>
+                    </div>
+                    <div class="my-3">
+                        <div class="text-3xl font-light text-zinc-900 font-mono tabular-nums"><span id="val-hum">76.0</span><span class="text-base text-zinc-400 font-normal ml-0.5">%</span></div>
+                        <p class="text-[11px] font-semibold text-zinc-700 mt-0.5">Kelembapan (RH)</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-medium text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full w-fit">Ideal</span>
+            </article>
+
+            <!-- Indeks THI -->
+            <article class="p-5 rounded-[24px] bg-white border border-black/[0.05] shadow-xs flex flex-col justify-between hover:shadow-sm transition">
+                <div>
+                    <div class="flex items-center justify-between text-zinc-400">
+                        <i class="fa-solid fa-calculator text-purple-500"></i>
+                        <span class="text-[10px] font-mono">THI Index</span>
+                    </div>
+                    <div class="my-3">
+                        <div class="text-3xl font-light text-zinc-900 font-mono tabular-nums"><span id="val-thi">80.8</span><span class="text-xs text-zinc-400 font-normal ml-1">pts</span></div>
+                        <p class="text-[11px] font-semibold text-zinc-700 mt-0.5">Indeks THI Sapi</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-medium text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full w-fit">Normal</span>
+            </article>
+
+            <!-- Kualitas Gas MQ-135 -->
+            <article class="p-5 rounded-[24px] bg-white border border-black/[0.05] shadow-xs flex flex-col justify-between hover:shadow-sm transition">
+                <div>
+                    <div class="flex items-center justify-between text-zinc-400">
+                        <i class="fa-solid fa-cloud text-emerald-500"></i>
+                        <span class="text-[10px] font-mono">MQ-135</span>
+                    </div>
+                    <div class="my-3">
+                        <div class="text-3xl font-light text-zinc-900 font-mono tabular-nums"><span id="val-gas">115</span><span class="text-xs text-zinc-400 font-normal ml-1">Raw</span></div>
+                        <p class="text-[11px] font-semibold text-zinc-700 mt-0.5">Kualitas Gas (NH₃)</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full w-fit">Bersih</span>
+            </article>
+
+            <!-- Intensitas Suara INMP441 -->
+            <article class="p-5 rounded-[24px] bg-white border border-black/[0.05] shadow-xs flex flex-col justify-between hover:shadow-sm transition">
+                <div>
+                    <div class="flex items-center justify-between text-zinc-400">
+                        <i class="fa-solid fa-volume-high text-rose-500"></i>
+                        <span class="text-[10px] font-mono">INMP441</span>
+                    </div>
+                    <div class="my-3">
+                        <div class="text-3xl font-light text-zinc-900 font-mono tabular-nums"><span id="val-sound">0.005</span><span class="text-xs text-zinc-400 font-normal ml-1">RMS</span></div>
+                        <p class="text-[11px] font-semibold text-zinc-700 mt-0.5">Kebisingan Akustik</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full w-fit">Senyap</span>
+            </article>
+        </div>
+
+        <!-- Dual Side-by-Side Live Telemetry Viewport -->
+        <section class="bento-card p-6 rounded-[28px]">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-black/[0.04]">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-400">Live Telemetry Stream</span>
+                    </div>
+                    <h4 class="text-lg font-bold text-zinc-900 mt-1">Grafik Riwayat Telemetri &amp; Comfort Score</h4>
+                    <p id="chart-description" class="text-xs text-zinc-400 mt-0.5">Sinkronisasi database SQLite riil runut waktu aktual (WIB)</p>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <select id="sensor-filter" onchange="renderCharts(true)" class="rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-xs font-semibold text-zinc-700 shadow-2xs focus:outline-none focus:border-emerald-500">
+                        <option value="all">Semua Sensor (5)</option>
+                        <option value="temperature">Suhu Udara (°C)</option>
+                        <option value="humidity">Kelembapan (RH %)</option>
+                        <option value="thi">Indeks THI Sapi</option>
+                        <option value="nh3">Kualitas Gas (Raw)</option>
+                        <option value="sound">Intensitas Suara (RMS)</option>
+                    </select>
+
+                    <div class="flex items-center rounded-full bg-[#FAF9F5] p-1 border border-black/[0.04] text-xs font-semibold">
+                        <button type="button" onclick="setPeriod('day')" id="btn-period-day" class="rounded-full bg-[#18191D] text-white px-3 py-1 shadow-xs transition">Hari Ini</button>
+                        <button type="button" onclick="setPeriod('week')" id="btn-period-week" class="rounded-full text-zinc-500 hover:text-zinc-900 px-3 py-1 transition">7 Hari</button>
+                        <button type="button" onclick="setPeriod('month')" id="btn-period-month" class="rounded-full text-zinc-500 hover:text-zinc-900 px-3 py-1 transition">30 Hari</button>
+                        <button type="button" onclick="setPeriod('year')" id="btn-period-year" class="rounded-full text-zinc-500 hover:text-zinc-900 px-3 py-1 transition">1 Tahun</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Side-by-side Dual Chart Viewport -->
+            <div class="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Left: 5 Sensor Chart -->
+                <div class="rounded-2xl bg-[#FCFBF8] border border-black/[0.03] p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2 px-1">
+                        <div>
+                            <span class="text-xs font-bold text-zinc-800">Telemetri 5 Sensor Mikroklimat</span>
+                            <span class="block text-[10px] text-zinc-400 font-mono">Sinkronisasi Database SQLite Real-time</span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>LIVE DB</span>
+                        </span>
+                    </div>
+                    <div id="sensor-chart" class="sensor-chart"></div>
+                </div>
+
+                <!-- Right: Comfort Score (Single Line) -->
+                <div class="rounded-2xl bg-[#FCFBF8] border border-black/[0.03] p-4 flex flex-col justify-between">
+                    <div class="flex items-center justify-between mb-2 px-1">
+                        <div>
+                            <span class="text-xs font-bold text-zinc-800">Grafik Comfort Score Kandang</span>
+                            <span class="block text-[10px] text-zinc-400 font-mono">Sumbu X: Waktu Real-time (WIB) · Sumbu Y: Skor (0–100)</span>
+                        </div>
+                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span>COMFORT SCORE</span>
+                        </span>
+                    </div>
+                    <div id="comfort-chart" class="sensor-chart"></div>
+                </div>
+            </div>
+
+            <!-- Legend Chips -->
+            <div class="mt-4 flex flex-wrap items-center gap-3 pt-3 border-t border-black/[0.04] text-xs">
+                <span class="flex items-center gap-1.5 text-zinc-600 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#f59e0b]"></span> Suhu Udara</span>
+                <span class="flex items-center gap-1.5 text-zinc-600 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#0284c7]"></span> Kelembapan</span>
+                <span class="flex items-center gap-1.5 text-zinc-600 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#8b5cf6]"></span> Indeks THI</span>
+                <span class="flex items-center gap-1.5 text-zinc-600 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#10b981]"></span> Kualitas Gas</span>
+                <span class="flex items-center gap-1.5 text-zinc-600 font-medium"><span class="h-2.5 w-2.5 rounded-full bg-[#f43f5e]"></span> Intensitas Suara</span>
+                <span class="ml-auto flex items-center gap-1.5 text-emerald-700 font-bold"><span class="h-2.5 w-2.5 rounded-full bg-[#10B981]"></span> Comfort Score (0-100)</span>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL 1: PENGATURAN OTOMASI AKTUATOR -->
+    <div id="automation-settings-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+        <div class="relative w-full max-w-lg rounded-3xl bg-white p-6 shadow-2xl border border-black/[0.08]">
+            <div class="flex items-center justify-between pb-3 border-b border-black/[0.05]">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                        <i class="fa-solid fa-sliders text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-zinc-900">Pengaturan Otomasi Aktuator</h3>
+                        <p class="text-[11px] text-zinc-400">Atur parameter nyala otomatis kipas exhaust &amp; lampu sirkadian</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAutomationSettingsModal()" class="h-8 w-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div id="auto-settings-error" class="hidden mt-3 p-3 rounded-2xl bg-rose-50 border border-rose-200 text-xs text-rose-800 font-medium"></div>
+
+            <form id="automation-form" class="mt-4 space-y-4 text-xs" onsubmit="event.preventDefault(); saveAutomationSettings();">
+                <div class="p-3.5 rounded-2xl bg-[#FAF9F5] border border-black/[0.03] space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-zinc-800 flex items-center gap-1.5"><i class="fa-solid fa-fan text-emerald-600"></i> Otomasi Kipas Exhaust</span>
+                        <input type="checkbox" id="modal-fan-auto" class="h-4 w-4 rounded accent-emerald-600" checked>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] uppercase font-semibold text-zinc-400 mb-1">Suhu Nyala (°C)</label>
+                            <input type="number" id="modal-fan-on" step="0.1" min="28.0" max="36.0" value="30.5" class="w-full rounded-xl border border-zinc-200 px-3 py-2 font-mono text-zinc-800 focus:border-emerald-500 focus:outline-none">
+                            <span class="text-[9px] text-zinc-400">Batas wajar: 28.0 - 36.0°C</span>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase font-semibold text-zinc-400 mb-1">Suhu Mati (°C)</label>
+                            <input type="number" id="modal-fan-off" step="0.1" min="26.0" max="34.0" value="28.5" class="w-full rounded-xl border border-zinc-200 px-3 py-2 font-mono text-zinc-800 focus:border-emerald-500 focus:outline-none">
+                            <span class="text-[9px] text-zinc-400">Histeresis min. 0.5°C</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-3.5 rounded-2xl bg-[#FAF9F5] border border-black/[0.03] space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-zinc-800 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb text-amber-500"></i> Otomasi Lampu LED Sirkadian</span>
+                        <input type="checkbox" id="modal-led-auto" class="h-4 w-4 rounded accent-amber-500" checked>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[10px] uppercase font-semibold text-zinc-400 mb-1">Jam Mulai Nyala</label>
+                            <input type="time" id="modal-led-start" value="18:00" class="w-full rounded-xl border border-zinc-200 px-3 py-2 font-mono text-zinc-800 focus:border-emerald-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] uppercase font-semibold text-zinc-400 mb-1">Jam Padam</label>
+                            <input type="time" id="modal-led-end" value="06:00" class="w-full rounded-xl border border-zinc-200 px-3 py-2 font-mono text-zinc-800 focus:border-emerald-500 focus:outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-2.5 pt-2">
+                    <button type="button" onclick="closeAutomationSettingsModal()" class="rounded-full bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-4 py-2 font-bold transition">Batal</button>
+                    <button type="submit" id="btn-save-automation" class="rounded-full bg-[#18191D] hover:bg-zinc-800 text-white px-5 py-2 font-bold transition shadow-xs flex items-center gap-1.5">
+                        <i class="fa-solid fa-check text-xs text-emerald-400"></i>
+                        <span>Simpan Parameter</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL 2: DETAIL & JADWAL SANITASI KANDANG -->
+    <div id="sanitation-detail-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+        <div class="relative w-full max-w-3xl rounded-3xl bg-white p-6 sm:p-7 shadow-2xl border border-black/[0.08] max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between pb-3 border-b border-black/[0.05]">
+                <div class="flex items-center gap-2.5">
+                    <div class="h-9 w-9 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
+                        <i class="fa-solid fa-spray-can-sparkles text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-zinc-900">Manajemen Sanitasi &amp; Pembersihan Kandang</h3>
+                        <p class="text-[11px] text-zinc-400">Catat tindakan pembersihan fisik dan pantau histori perawatan</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeSanitationModal()" class="h-8 w-8 rounded-full bg-zinc-100 hover:bg-zinc-200 flex items-center justify-center text-zinc-500 transition">
+                    <i class="fa-solid fa-xmark text-xs"></i>
+                </button>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="p-3 rounded-2xl bg-[#FAF9F5] border border-black/[0.03]">
+                    <span class="block text-[10px] uppercase font-semibold text-zinc-400">Amonia Terkini</span>
+                    <p id="modal-san-gas" class="text-base font-bold text-zinc-900 font-mono mt-0.5">-- ppm</p>
+                </div>
+                <div class="p-3 rounded-2xl bg-[#FAF9F5] border border-black/[0.03]">
+                    <span class="block text-[10px] uppercase font-semibold text-zinc-400">Kelembapan Udara</span>
+                    <p id="modal-san-hum" class="text-base font-bold text-zinc-900 font-mono mt-0.5">-- %</p>
+                </div>
+                <div class="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-200/50">
+                    <span class="block text-[10px] uppercase font-bold text-emerald-800">Diagnosis AI Sanitasi</span>
+                    <p id="modal-san-diag" class="text-xs text-emerald-900 font-medium mt-0.5 leading-snug">Kondisi sanitasi kandang aman.</p>
+                </div>
+            </div>
+
+            <div class="mt-5 grid grid-cols-1 lg:grid-cols-5 gap-6">
+                <!-- Form Pencatatan Baru -->
+                <div class="lg:col-span-2 space-y-3 text-xs">
+                    <h4 class="font-bold text-zinc-900 text-xs flex items-center gap-1.5 pb-1 border-b border-black/[0.04]">
+                        <i class="fa-solid fa-pen-to-square text-emerald-600"></i>
+                        <span>Form Catat / Jadwal Baru</span>
+                    </h4>
+                    <div>
+                        <label class="block font-semibold text-zinc-700 mb-1">Jenis Tindakan Pembersihan</label>
+                        <select id="sanitation-type" class="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-800 focus:border-emerald-500 focus:outline-none bg-white">
+                            <option value="Sanitasi & Semprot Disinfektan">Sanitasi &amp; Semprot Disinfektan</option>
+                            <option value="Pembersihan Lantai & Alas Kotoran">Pembersihan Lantai &amp; Alas Kotoran</option>
+                            <option value="Pencucian Saluran Minum & Palung">Pencucian Saluran Minum &amp; Palung</option>
+                            <option value="Ventilasi & Pengeringan Kandang">Ventilasi &amp; Pengeringan Kandang</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-zinc-700 mb-1">Waktu Pelaksanaan</label>
+                        <input type="datetime-local" id="sanitation-date" class="w-full rounded-xl border border-zinc-200 px-3 py-2 font-mono text-xs text-zinc-800 focus:border-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-zinc-700 mb-1">Nama Petugas / Operator</label>
+                        <input type="text" id="sanitation-operator" value="Budi / Tim Kandang A" class="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-800 focus:border-emerald-500 focus:outline-none">
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-zinc-700 mb-1">Status Tindakan</label>
+                        <select id="sanitation-status" class="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-800 focus:border-emerald-500 focus:outline-none bg-white">
+                            <option value="SELESAI">SELESAI (Sudah Dikerjakan)</option>
+                            <option value="TERJADWAL">TERJADWAL (Akan Datang)</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-semibold text-zinc-700 mb-1">Catatan Lapangan (Opsional)</label>
+                        <textarea id="sanitation-notes" rows="2" class="w-full rounded-xl border border-zinc-200 px-3 py-2 text-xs text-zinc-800 focus:border-emerald-500 focus:outline-none" placeholder="Kondisi kotoran, alas diganti, dsb..."></textarea>
+                    </div>
+                    <button type="button" onclick="submitSanitationLog()" class="w-full rounded-full bg-[#18191D] hover:bg-zinc-800 text-white py-2.5 font-bold transition shadow-xs flex items-center justify-center gap-1.5 mt-2">
+                        <i class="fa-solid fa-floppy-disk text-xs text-emerald-400"></i>
+                        <span>Simpan Catatan Sanitasi</span>
+                    </button>
+                </div>
+
+                <!-- Tabel Riwayat Log Sanitasi -->
+                <div class="lg:col-span-3 space-y-2.5">
+                    <div class="flex items-center justify-between pb-1 border-b border-black/[0.04]">
+                        <h4 class="font-bold text-zinc-900 text-xs flex items-center gap-1.5">
+                            <i class="fa-solid fa-clock-rotate-left text-zinc-500"></i>
+                            <span>Riwayat Log Pembersihan Kandang</span>
+                        </h4>
+                        <span class="text-[10px] text-zinc-400 font-mono">Tersimpan di SQLite DB</span>
+                    </div>
+                    <div id="sanitation-history-list" class="space-y-2 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/js/api.js"></script>
+    <script>
+        let currentPeriod = 'day';
+        let sensorChart = null;
+        let comfortChart = null;
+        let lastSensorChartKey = '';
+        let lastComfortChartKey = '';
+
+        // Live Clock
+        function updateClock() {
+            const now = new Date();
+            const el = document.getElementById('live-clock');
+            if (el) el.textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '.');
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        function setPeriod(p) {
+            currentPeriod = p;
+            ['day', 'week', 'month', 'year'].forEach(k => {
+                const btn = document.getElementById(`btn-period-${k}`);
+                if (btn) {
+                    if (k === p) {
+                        btn.className = 'rounded-full bg-[#18191D] text-white px-3 py-1 shadow-xs transition';
+                    } else {
+                        btn.className = 'rounded-full text-zinc-500 hover:text-zinc-900 px-3 py-1 transition';
+                    }
+                }
+            });
+            renderCharts(true);
+        }
+
+        async function renderCharts(force = false) {
+            const sensorContainer = document.getElementById('sensor-chart');
+            const comfortContainer = document.getElementById('comfort-chart');
+            const sensorFilter = document.getElementById('sensor-filter');
+            if (!sensorContainer || !comfortContainer || typeof ApexCharts === 'undefined') return;
+
+            const selectedSensor = sensorFilter ? sensorFilter.value : 'all';
+            const isSingle = selectedSensor !== 'all';
+
+            let realHistory = null;
+            if (window.SmartFarmAPI && window.SmartFarmAPI.isConnected) {
+                try {
+                    realHistory = await window.SmartFarmAPI.getGroup2History(currentPeriod, 30);
+                } catch (e) {
+                    console.warn('Gagal ambil data riwayat:', e);
+                }
+            }
+
+            let categories = [];
+            let chartSeries = [];
+            let comfortSeries = [];
+
+            if (realHistory && realHistory.data && realHistory.data.length > 0) {
+                const items = realHistory.data;
+                if (realHistory.is_aggregated) {
+                    categories = items.map(it => it.time_label || 'Data');
+                    const temps = items.map(it => it.temperature_c);
+                    const hums = items.map(it => it.humidity_rh);
+                    const this_ = items.map(it => it.thi);
+                    const mqs = items.map(it => it.mq135_raw);
+                    const sounds = items.map(it => it.sound_rms);
+                    const scores = items.map(it => (it.comfort && it.comfort.comfort_score !== undefined) ? it.comfort.comfort_score : 85);
+
+                    const seriesMap = {
+                        temperature: { name: 'Suhu Udara (°C)', data: temps },
+                        humidity: { name: 'Kelembapan (%)', data: hums },
+                        thi: { name: 'Indeks THI Sapi (pts)', data: this_ },
+                        nh3: { name: 'Kualitas Gas (Raw)', data: mqs },
+                        sound: { name: 'Intensitas Suara (RMS)', data: sounds },
+                    };
+
+                    chartSeries = isSingle && seriesMap[selectedSensor] ? [seriesMap[selectedSensor]] : [
+                        { name: 'Suhu', data: temps.map(v => Math.round(Math.min(100, (v / 40) * 100))) },
+                        { name: 'Kelembapan', data: hums.map(v => Math.round(Math.min(100, v))) },
+                        { name: 'Indeks THI', data: this_.map(v => Math.round(Math.min(100, v))) },
+                        { name: 'Kualitas Gas', data: mqs.map(v => Math.round(Math.min(100, (v / 1024) * 100))) },
+                        { name: 'Intensitas Suara', data: sounds.map(v => Math.round(Math.min(100, (v / 0.1) * 100))) },
+                    ];
+                    comfortSeries = [{ name: 'Comfort Score', data: scores }];
+                } else {
+                    // Period: Day (Real-time Runut Waktu WIB)
+                    categories = items.map(it => {
+                        if (it.time_wib) return it.time_wib.replace(/:/g, '.');
+                        if (it.received_at) {
+                            const d = new Date(it.received_at);
+                            if (!isNaN(d.getTime())) return d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/:/g, '.');
+                        }
+                        return '';
+                    });
+
+                    const temps = items.map(it => Number(it.temperature_c || (it.sensor_values && it.sensor_values.temperature_c) || 29.0));
+                    const hums = items.map(it => Number(it.humidity_rh || (it.sensor_values && it.sensor_values.humidity_rh) || 76.0));
+                    const this_ = items.map(it => it.comfort && it.comfort.thi ? Number(it.comfort.thi) : Number(((0.8 * (it.temperature_c || 29)) + ((it.humidity_rh || 76) / 100 * ((it.temperature_c || 29) - 14.4)) + 46.4).toFixed(1)));
+                    const mqs = items.map(it => Number(it.mq135_raw || (it.sensor_values && it.sensor_values.mq135_raw) || 115));
+                    const sounds = items.map(it => Number(it.sound_rms || (it.sensor_values && it.sensor_values.sound_rms) || 0.005));
+                    const scores = items.map(it => Number((it.comfort && it.comfort.comfort_score !== undefined) ? it.comfort.comfort_score : 85));
+
+                    const seriesMap = {
+                        temperature: { name: 'Suhu Udara (°C)', data: temps },
+                        humidity: { name: 'Kelembapan (%)', data: hums },
+                        thi: { name: 'Indeks THI Sapi (pts)', data: this_ },
+                        nh3: { name: 'Kualitas Gas (Raw)', data: mqs },
+                        sound: { name: 'Intensitas Suara (RMS)', data: sounds },
+                    };
+
+                    chartSeries = isSingle && seriesMap[selectedSensor] ? [seriesMap[selectedSensor]] : [
+                        { name: 'Suhu', data: temps.map(v => Math.round(Math.min(100, (v / 40) * 100))) },
+                        { name: 'Kelembapan', data: hums.map(v => Math.round(Math.min(100, v))) },
+                        { name: 'Indeks THI', data: this_.map(v => Math.round(Math.min(100, v))) },
+                        { name: 'Kualitas Gas', data: mqs.map(v => Math.round(Math.min(100, (v / 1024) * 100))) },
+                        { name: 'Intensitas Suara', data: sounds.map(v => Math.round(Math.min(100, (v / 0.1) * 100))) },
+                    ];
+                    comfortSeries = [{ name: 'Comfort Score', data: scores }];
+                }
+            } else {
+                categories = ['13.00.00', '13.02.00', '13.04.00', '13.06.00', '13.08.00'];
+                chartSeries = [{ name: 'Suhu', data: [72, 73, 72, 74, 72] }];
+                comfortSeries = [{ name: 'Comfort Score', data: [85, 86, 85, 84, 85] }];
+            }
+
+            // 1. Render Left Sensor Chart
+            const sensorKey = `${selectedSensor}:${currentPeriod}:${categories.length}`;
+            if (sensorChart && !force && lastSensorChartKey === sensorKey) {
+                sensorChart.updateOptions({ xaxis: { categories } }, false, false);
+                sensorChart.updateSeries(chartSeries, true);
+            } else {
+                if (sensorChart) sensorChart.destroy();
+                sensorContainer.innerHTML = '';
+                lastSensorChartKey = sensorKey;
+
+                sensorChart = new ApexCharts(sensorContainer, {
+                    series: chartSeries,
+                    chart: { type: 'area', height: 295, toolbar: { show: false }, zoom: { enabled: false }, fontFamily: '"Plus Jakarta Sans", sans-serif', animations: { enabled: true, speed: 450 } },
+                    colors: isSingle ? ['#10b981'] : ['#f59e0b', '#0284c7', '#8b5cf6', '#10b981', '#f43f5e'],
+                    stroke: { curve: 'smooth', width: isSingle ? 3 : 2.2 },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.01, stops: [0, 92, 100] } },
+                    markers: { size: isSingle ? 4 : 0, strokeColors: '#ffffff', strokeWidth: 2, hover: { size: 6 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: 'rgba(24, 24, 27, 0.06)', strokeDashArray: 4 },
+                    xaxis: { categories, title: { text: 'Waktu (WIB)', style: { color: '#71717A', fontSize: '10px', fontWeight: 600 } }, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#71717A', fontSize: '10px', fontFamily: '"JetBrains Mono", monospace' } } },
+                    yaxis: { min: isSingle ? undefined : 0, max: isSingle ? undefined : 100, title: { text: isSingle ? chartSeries[0].name : 'Skala Relatif (0–100%)', style: { color: '#71717A', fontSize: '10px', fontWeight: 600 } }, labels: { style: { colors: '#71717A', fontSize: '10px', fontFamily: '"JetBrains Mono", monospace' }, formatter: v => isSingle ? Number(v).toFixed(1) : `${Math.round(v)}%` } },
+                    tooltip: { theme: 'dark', y: { formatter: v => isSingle ? Number(v).toFixed(2) : `${Math.round(v)}%` } }
+                });
+                sensorChart.render();
+            }
+
+            // 2. Render Right Comfort Score Chart (Single Emerald Line)
+            const comfortKey = `comfort:${currentPeriod}:${categories.length}`;
+            if (comfortChart && !force && lastComfortChartKey === comfortKey) {
+                comfortChart.updateOptions({ xaxis: { categories } }, false, false);
+                comfortChart.updateSeries(comfortSeries, true);
+            } else {
+                if (comfortChart) comfortChart.destroy();
+                comfortContainer.innerHTML = '';
+                lastComfortChartKey = comfortKey;
+
+                comfortChart = new ApexCharts(comfortContainer, {
+                    series: comfortSeries,
+                    chart: { type: 'area', height: 295, toolbar: { show: false }, zoom: { enabled: false }, fontFamily: '"Plus Jakarta Sans", sans-serif', animations: { enabled: true, speed: 450 } },
+                    colors: ['#10B981'],
+                    stroke: { curve: 'smooth', width: 3 },
+                    fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.28, opacityTo: 0.01, stops: [0, 92, 100] } },
+                    markers: { size: 4, strokeColors: '#ffffff', strokeWidth: 2, hover: { size: 6 } },
+                    dataLabels: { enabled: false },
+                    grid: { borderColor: 'rgba(24, 24, 27, 0.06)', strokeDashArray: 4 },
+                    annotations: {
+                        yaxis: [
+                            { y: 75, borderColor: '#10B981', strokeDashArray: 4, label: { borderColor: '#10B981', style: { color: '#fff', background: '#10B981', fontSize: '10px', fontWeight: 700 }, text: 'Target Nyaman ≥ 75' } },
+                            { y: 50, borderColor: '#f43f5e', strokeDashArray: 4, label: { borderColor: '#f43f5e', style: { color: '#fff', background: '#f43f5e', fontSize: '10px', fontWeight: 700 }, text: 'Batas Kritis < 50' } }
+                        ]
+                    },
+                    xaxis: { categories, title: { text: 'Waktu (WIB)', style: { color: '#71717A', fontSize: '10px', fontWeight: 600 } }, axisBorder: { show: false }, axisTicks: { show: false }, labels: { style: { colors: '#71717A', fontSize: '10px', fontFamily: '"JetBrains Mono", monospace' } } },
+                    yaxis: { min: 0, max: 100, title: { text: 'Comfort Score (0–100)', style: { color: '#71717A', fontSize: '10px', fontWeight: 600 } }, labels: { style: { colors: '#71717A', fontSize: '10px', fontFamily: '"JetBrains Mono", monospace' }, formatter: v => `${Math.round(v)}` } },
+                    tooltip: { theme: 'dark', y: { formatter: v => `${Number(v).toFixed(1)} pts` } }
+                });
+                comfortChart.render();
+            }
+        }
+
+        // ─── MODAL SANITASI LOGIC ───
+        async function openSanitationModal() {
+            const modal = document.getElementById('sanitation-detail-modal');
+            const dateInput = document.getElementById('sanitation-date');
+            if (dateInput) {
+                const now = new Date();
+                const pad = n => String(n).padStart(2, '0');
+                dateInput.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            }
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+            renderSanitationHistory();
+        }
+
+        function closeSanitationModal() {
+            const modal = document.getElementById('sanitation-detail-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        async function submitSanitationLog() {
+            const type = document.getElementById('sanitation-type').value;
+            const dateVal = document.getElementById('sanitation-date').value;
+            const operator = document.getElementById('sanitation-operator').value;
+            const status = document.getElementById('sanitation-status').value;
+            const notes = document.getElementById('sanitation-notes').value;
+
+            const payload = {
+                cleaning_type: type,
+                operator_name: operator,
+                status: status,
+                notes: notes,
+                scheduled_at: dateVal ? new Date(dateVal).toISOString() : new Date().toISOString(),
+            };
+
+            if (window.SmartFarmAPI) {
+                try {
+                    await window.SmartFarmAPI.createKandangSanitation(payload);
+                    await window.SmartFarmAPI.getKandangSanitation();
+                    renderSanitationHistory();
+                    document.getElementById('sanitation-notes').value = '';
+                } catch (e) {
+                    alert('Gagal menyimpan log sanitasi: ' + e.message);
+                }
+            }
+        }
+
+        function renderSanitationHistory() {
+            const container = document.getElementById('sanitation-history-list');
+            if (!container) return;
+            const logs = (window.SmartFarmAPI && window.SmartFarmAPI.state && window.SmartFarmAPI.state.kandangSanitation && window.SmartFarmAPI.state.kandangSanitation.items) || [];
+
+            if (!logs.length) {
+                container.innerHTML = `
+                    <div class="text-center py-8 rounded-2xl bg-[#FAF9F5] border border-black/[0.04]">
+                        <i class="fa-solid fa-broom text-zinc-300 text-2xl mb-2"></i>
+                        <p class="text-xs text-zinc-500 font-medium">Belum ada catatan pembersihan kandang tersimpan.</p>
+                        <p class="text-[10px] text-zinc-400 mt-0.5">Isi form di samping untuk mencatat kegiatan pembersihan pertama.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = logs.map(l => {
+                const isDone = l.status === 'SELESAI';
+                const badgeClass = isDone ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-amber-50 text-amber-800 border-amber-200';
+                const icon = isDone ? 'fa-check' : 'fa-clock';
+                const timeStr = l.scheduled_at ? new Date(l.scheduled_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                return `
+                    <div class="p-3 rounded-2xl bg-[#FAF9F5] border border-black/[0.03] flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-xs text-zinc-900">${l.cleaning_type}</span>
+                                <span class="rounded-full border px-2 py-0.5 text-[9px] font-bold ${badgeClass} inline-flex items-center gap-1">
+                                    <i class="fa-solid ${icon} text-[8px]"></i>
+                                    <span>${l.status}</span>
+                                </span>
+                            </div>
+                            <p class="text-[11px] text-zinc-500 mt-0.5 font-medium">Petugas: <span class="text-zinc-700">${l.operator_name || 'Tim Kandang'}</span></p>
+                            ${l.notes ? `<p class="text-[10px] text-zinc-600 mt-1 italic bg-white/70 p-1.5 rounded-lg border border-black/[0.03]">"${l.notes}"</p>` : ''}
+                        </div>
+                        <span class="text-[10px] font-mono text-zinc-400 shrink-0">${timeStr}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // ─── MODAL OTOMASI LOGIC ───
+        function openAutomationSettingsModal() {
+            const modal = document.getElementById('automation-settings-modal');
+            const errEl = document.getElementById('auto-settings-error');
+            if (errEl) errEl.classList.add('hidden');
+
+            const auto = (window.SmartFarmAPI && window.SmartFarmAPI.state && window.SmartFarmAPI.state.kandangAutomation) || {};
+            if (auto) {
+                if (auto.fan_auto !== undefined) document.getElementById('modal-fan-auto').checked = auto.fan_auto;
+                if (auto.fan_temp_on !== undefined) document.getElementById('modal-fan-on').value = auto.fan_temp_on;
+                if (auto.fan_temp_off !== undefined) document.getElementById('modal-fan-off').value = auto.fan_temp_off;
+                if (auto.led_auto !== undefined) document.getElementById('modal-led-auto').checked = auto.led_auto;
+                if (auto.led_start_time) document.getElementById('modal-led-start').value = auto.led_start_time;
+                if (auto.led_end_time) document.getElementById('modal-led-end').value = auto.led_end_time;
+            }
+
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        }
+
+        function closeAutomationSettingsModal() {
+            const modal = document.getElementById('automation-settings-modal');
+            if (modal) {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+        }
+
+        async function saveAutomationSettings() {
+            const fanAuto = document.getElementById('modal-fan-auto').checked;
+            const fanOn = parseFloat(document.getElementById('modal-fan-on').value);
+            const fanOff = parseFloat(document.getElementById('modal-fan-off').value);
+            const ledAuto = document.getElementById('modal-led-auto').checked;
+            const ledStart = document.getElementById('modal-led-start').value;
+            const ledEnd = document.getElementById('modal-led-end').value;
+            const errEl = document.getElementById('auto-settings-error');
+
+            if (isNaN(fanOn) || fanOn < 28.0 || fanOn > 36.0) {
+                showError('Suhu nyala kipas harus berada dalam rentang wajar (28.0°C – 36.0°C).');
+                return;
+            }
+            if (isNaN(fanOff) || fanOff < 26.0 || fanOff > 34.0) {
+                showError('Suhu mati kipas harus berada dalam rentang wajar (26.0°C – 34.0°C).');
+                return;
+            }
+            if (fanOff >= fanOn) {
+                showError('Suhu mati kipas harus lebih rendah dari suhu nyala (histeresis minimal 0.5°C).');
+                return;
+            }
+
+            const payload = {
+                fan_auto: fanAuto,
+                fan_temp_on: fanOn,
+                fan_temp_off: fanOff,
+                led_auto: ledAuto,
+                led_start_time: ledStart,
+                led_end_time: ledEnd,
+            };
+
+            if (window.SmartFarmAPI) {
+                try {
+                    await window.SmartFarmAPI.updateKandangAutomation(payload);
+                    closeAutomationSettingsModal();
+                } catch (e) {
+                    showError(e.message || 'Gagal menyimpan pengaturan otomatisasi.');
+                }
+            }
+
+            function showError(msg) {
+                if (errEl) {
+                    errEl.textContent = msg;
+                    errEl.classList.remove('hidden');
+                }
+            }
+        }
+
+        // Manual Toggles
+        function toggleFanManual(checked) {
+            const iconBox = document.getElementById('fan-icon-box');
+            const icon = document.getElementById('fan-icon');
+            const txt = document.getElementById('fan-status-text');
+            if (checked) {
+                iconBox.className = 'h-12 w-12 rounded-2xl bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600 shadow-2xs';
+                icon.classList.add('fan-spin');
+                if (txt) txt.textContent = 'Aktif (Berputar)';
+            } else {
+                iconBox.className = 'h-12 w-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center text-zinc-400 shadow-2xs';
+                icon.classList.remove('fan-spin');
+                if (txt) txt.textContent = 'Standby';
+            }
+        }
+
+        function toggleLedManual(checked) {
+            const iconBox = document.getElementById('led-icon-box');
+            const txt = document.getElementById('led-status-text');
+            if (checked) {
+                iconBox.className = 'h-12 w-12 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-500 led-glow shadow-2xs';
+                if (txt) txt.textContent = 'Menyala (4000K)';
+            } else {
+                iconBox.className = 'h-12 w-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center text-zinc-400 shadow-2xs';
+                if (txt) txt.textContent = 'Padam';
+            }
+        }
+
+        function toggleBuzzerManual(checked) {
+            const iconBox = document.getElementById('buzzer-icon-box');
+            const icon = document.getElementById('buzzer-icon');
+            const txt = document.getElementById('buzzer-status-text');
+            if (checked) {
+                iconBox.className = 'h-12 w-12 rounded-2xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shadow-2xs';
+                icon.className = 'fa-solid fa-bell text-lg animate-bounce';
+                if (txt) txt.textContent = 'BUNYI ALARM';
+            } else {
+                iconBox.className = 'h-12 w-12 rounded-2xl bg-white border border-black/[0.05] flex items-center justify-center text-zinc-400 shadow-2xs';
+                icon.className = 'fa-solid fa-bell-slash text-lg';
+                if (txt) txt.textContent = 'Siaga';
+            }
+        }
+
+        function testBuzzerBeep() {
+            toggleBuzzerManual(true);
+            setTimeout(() => toggleBuzzerManual(false), 800);
+        }
+
+        // Initialize and Start Polling
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCharts();
+
+            if (window.SmartFarmAPI) {
+                window.SmartFarmAPI.onStateChange(state => {
+                    // Update Latest Sensors
+                    if (state.group2Latest && state.group2Latest.sensor_values) {
+                        const vals = state.group2Latest.sensor_values;
+                        if (vals.temperature_c !== undefined) document.getElementById('val-temp').textContent = Number(vals.temperature_c).toFixed(1);
+                        if (vals.humidity_rh !== undefined) {
+                            document.getElementById('val-hum').textContent = Number(vals.humidity_rh).toFixed(1);
+                            document.getElementById('cleaning-rh-val').innerHTML = `${Number(vals.humidity_rh).toFixed(0)}% <span class="text-[10px] font-normal text-sky-600 ml-1">Ideal</span>`;
+                            document.getElementById('rh-percent-val').textContent = Number(vals.humidity_rh).toFixed(1);
+                        }
+                        if (vals.mq135_raw !== undefined) {
+                            document.getElementById('val-gas').textContent = Math.round(vals.mq135_raw);
+                            const estPpm = Math.max(1, Math.round((vals.mq135_raw / 850) * 25));
+                            document.getElementById('cleaning-gas-ppm').innerHTML = `${estPpm} ppm <span class="text-[10px] font-normal text-emerald-600 ml-1">Normal</span>`;
+                        }
+                        if (vals.sound_rms !== undefined) document.getElementById('val-sound').textContent = Number(vals.sound_rms).toFixed(3);
+                    }
+
+                    // Update Comfort & Early Warning
+                    if (state.kandangStatus) {
+                        const ks = state.kandangStatus;
+                        if (ks.comfort) {
+                            const score = Math.round(ks.comfort.comfort_score);
+                            const scoreEl = document.getElementById('comfort-score');
+                            const barEl = document.getElementById('comfort-bar');
+                            const arcEl = document.getElementById('comfort-arc');
+                            const descEl = document.getElementById('comfort-description');
+                            const thiEl = document.getElementById('val-thi');
+                            const thiPtsEl = document.getElementById('thi-pts-val');
+
+                            if (scoreEl) scoreEl.textContent = score;
+                            if (thiEl && ks.comfort.thi) thiEl.textContent = ks.comfort.thi;
+                            if (thiPtsEl && ks.comfort.thi) thiPtsEl.textContent = ks.comfort.thi;
+                            if (descEl && ks.comfort.interpretasi) descEl.textContent = ks.comfort.interpretasi;
+
+                            if (barEl) {
+                                barEl.style.width = `${score}%`;
+                                barEl.className = score < 50 ? 'h-full rounded-full bg-[#f43f5e]' : score < 75 ? 'h-full rounded-full bg-[#f59e0b]' : 'h-full rounded-full bg-[#10B981]';
+                            }
+                            if (arcEl) {
+                                const circumference = 264;
+                                const offset = Math.round(circumference - (circumference * score) / 100);
+                                arcEl.setAttribute('stroke-dashoffset', String(offset));
+                                arcEl.setAttribute('stroke', score < 50 ? '#f43f5e' : score < 75 ? '#f59e0b' : '#10B981');
+                            }
+                        }
+
+                        if (ks.early_warning) {
+                            const ew = ks.early_warning;
+                            const curTempEl = document.getElementById('ew-current-temp');
+                            const estTempEl = document.getElementById('ew-est-temp');
+                            const ewMsg = document.getElementById('ew-message');
+                            const ewRec = document.getElementById('ew-recommendation');
+                            const trendLabel = document.getElementById('ew-trend-label');
+                            const trendBadge = document.getElementById('ew-trend-badge');
+                            const trendDot = document.getElementById('ew-trend-dot');
+                            const iconBox = document.getElementById('ew-icon-box');
+
+                            if (curTempEl && ew.current_temp !== undefined) curTempEl.innerHTML = `${ew.current_temp.toFixed(1)}<span class="text-xs text-zinc-400 font-normal ml-0.5">°C</span>`;
+                            if (estTempEl && ew.estimated_temp_15m !== undefined) estTempEl.innerHTML = `${ew.estimated_temp_15m.toFixed(1)}<span class="text-xs text-zinc-400 font-normal ml-0.5">°C</span>`;
+                            if (ewMsg && ew.message) ewMsg.textContent = ew.message;
+                            if (ewRec && ew.recommendation) ewRec.textContent = `Rekomendasi: ${ew.recommendation}`;
+                            if (trendLabel) trendLabel.textContent = ew.trend || 'STABIL';
+
+                            if (trendBadge && trendDot && iconBox) {
+                                if (ew.trend === 'MENINGKAT') {
+                                    trendBadge.className = 'inline-flex items-center gap-1 rounded-full bg-rose-50 border border-rose-200 px-2.5 py-0.5 text-[10px] font-bold text-rose-800';
+                                    trendDot.className = 'h-1.5 w-1.5 rounded-full bg-rose-500 animate-pulse';
+                                    iconBox.className = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-50 border border-rose-200 text-rose-600 transition-colors';
+                                } else {
+                                    trendBadge.className = 'inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800';
+                                    trendDot.className = 'h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse';
+                                    iconBox.className = 'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 transition-colors';
+                                }
+                            }
+                        }
+                    }
+
+                    // Update Header KPIs
+                    if (state.summary) {
+                        const iotEl = document.getElementById('kpi-iot-online');
+                        if (iotEl && state.summary.online_device_count !== undefined) {
+                            iotEl.textContent = state.summary.online_device_count;
+                        }
+                        const cowEl = document.getElementById('kpi-total-ternak');
+                        if (cowEl && state.summary.total_ternak !== undefined) {
+                            cowEl.textContent = state.summary.total_ternak;
+                        }
+                        const siloEl = document.getElementById('kpi-pakan-silo');
+                        if (siloEl && state.summary.pakan_silo_kg !== undefined) {
+                            siloEl.textContent = state.summary.pakan_silo_kg;
+                        }
+                    }
+
+                    renderCharts();
+                });
+
+                window.SmartFarmAPI.startPolling(3500);
+            }
+        });
+    </script>
+</body>
+</html>

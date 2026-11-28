@@ -149,3 +149,39 @@ class RfidCard(db.Model):
     uid = db.Column(db.String(64), primary_key=True)
     label = db.Column(db.String(120), nullable=False, default="Kartu Peternak")
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+
+class BarnRecoveryLog(db.Model):
+    __tablename__ = "barn_recovery_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(
+        db.String(64), db.ForeignKey("device.device_id"), nullable=False, index=True
+    )
+    actuator_id = db.Column(db.String(64), nullable=False, default="ACT_FAN_002")
+    start_time = db.Column(db.DateTime(timezone=True), nullable=False, index=True, default=utc_now)
+    end_time = db.Column(db.DateTime(timezone=True))
+    initial_temperature = db.Column(db.Float, nullable=False)
+    target_temperature = db.Column(db.Float, nullable=False, default=29.5)
+    final_temperature = db.Column(db.Float)
+    evaluation_minutes = db.Column(db.Integer, nullable=False, default=15)
+    duration_minutes = db.Column(db.Float)
+    status = db.Column(db.String(32), nullable=False, default="IN_PROGRESS", index=True)
+    recommendation = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+
+class SanitationLog(db.Model):
+    __tablename__ = "sanitation_log"
+
+    id = db.Column(db.Integer, primary_key=True)
+    device_id = db.Column(
+        db.String(64), db.ForeignKey("device.device_id"), nullable=False, default="DEV_002", index=True
+    )
+    scheduled_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+    completed_at = db.Column(db.DateTime(timezone=True))
+    cleaning_type = db.Column(db.String(64), nullable=False)
+    operator_name = db.Column(db.String(120), nullable=False)
+    status = db.Column(db.String(32), nullable=False, default="SELESAI", index=True)
+    notes = db.Column(db.String(500))
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)

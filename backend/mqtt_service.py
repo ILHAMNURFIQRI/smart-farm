@@ -183,8 +183,11 @@ def process_legacy_smartfeeding_message(topic: str, raw_payload: str) -> bool:
             return False
         msg_id = str(uuid4())
         readings = []
-        if "jarak_cm" in data and data["jarak_cm"] is not None:
-            readings.append(("SNS_ULTRASONIC_003", "distance_cm", float(data["jarak_cm"]), "cm"))
+        jarak_cm = data.get("jarak_cm")
+        if jarak_cm is None:
+            jarak_cm = data.get("silo_jarak_cm")
+        if jarak_cm is not None:
+            readings.append(("SNS_ULTRASONIC_003", "distance_cm", float(jarak_cm), "cm"))
         if "feed_level" in data and data["feed_level"] is not None:
             readings.append(("SNS_ULTRASONIC_003", "feed_level_percent", float(data["feed_level"]), "%"))
         if "feed_status" in data and data["feed_status"]:
