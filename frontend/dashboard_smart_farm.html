@@ -1564,31 +1564,31 @@
                         <div class="space-y-4">
                             <article class="rounded-2xl border border-black/[0.04] bg-[#F8F7F3] p-4">
                                 <div class="flex items-center justify-between text-xs mb-2">
-                                    <span class="font-bold text-zinc-800">PUMP 1 — Dispenser Pakan Silase</span>
-                                    <span class="font-mono text-[10px] text-zinc-500">Relay GPIO 19</span>
+                                    <span class="font-bold text-zinc-800">MOTOR — Motor Penggerak</span>
+                                    <span class="font-mono text-[10px] text-zinc-500">Relay GPIO 18</span>
                                 </div>
                                 <div class="flex items-center justify-between text-xs font-mono text-zinc-600 mb-3">
                                     <span>Status Motor: Idle</span>
                                     <span id="feeder-motor-status-label" class="text-[#065f46] font-bold">READY</span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-2.5">
-                                    <button id="pump1-on-btn" type="button" onclick="controlFeedingActuator('ACT_FEEDER_MOTOR_003', 'ON')" class="rounded-full bg-[#18191D] py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition shadow-2xs">PUMP 1 ON</button>
-                                    <button id="pump1-off-btn" type="button" onclick="controlFeedingActuator('ACT_FEEDER_MOTOR_003', 'OFF')" class="rounded-full bg-white py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 transition border border-black/[0.06] shadow-2xs">PUMP 1 OFF</button>
+                                    <button id="pump1-on-btn" type="button" onclick="controlFeedingActuator('ACT_FEEDER_MOTOR_003', 'ON')" class="rounded-full bg-[#18191D] py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition shadow-2xs">MOTOR ON</button>
+                                    <button id="pump1-off-btn" type="button" onclick="controlFeedingActuator('ACT_FEEDER_MOTOR_003', 'OFF')" class="rounded-full bg-white py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 transition border border-black/[0.06] shadow-2xs">MOTOR OFF</button>
                                 </div>
                             </article>
 
                             <article class="rounded-2xl border border-black/[0.04] bg-[#F8F7F3] p-4">
                                 <div class="flex items-center justify-between text-xs mb-2">
-                                    <span class="font-bold text-zinc-800">PUMP 2 — Pompa Air Minum Kandang</span>
-                                    <span class="font-mono text-[10px] text-zinc-500">Relay GPIO 18</span>
+                                    <span class="font-bold text-zinc-800">POMPA AIR — Pompa Air Minum Kandang</span>
+                                    <span class="font-mono text-[10px] text-zinc-500">Relay GPIO 19</span>
                                 </div>
                                 <div class="flex items-center justify-between text-xs font-mono text-zinc-600 mb-3">
                                     <span>Debit: 12.5 L/min</span>
                                     <span id="feeder-pump-status-label" class="text-[#065f46] font-bold">READY</span>
                                 </div>
                                 <div class="grid grid-cols-2 gap-2.5">
-                                    <button id="pump2-on-btn" type="button" onclick="controlFeedingActuator('ACT_PUMP_003', 'ON')" class="rounded-full bg-[#18191D] py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition shadow-2xs">PUMP 2 ON</button>
-                                    <button id="pump2-off-btn" type="button" onclick="controlFeedingActuator('ACT_PUMP_003', 'OFF')" class="rounded-full bg-white py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 transition border border-black/[0.06] shadow-2xs">PUMP 2 OFF</button>
+                                    <button id="pump2-on-btn" type="button" onclick="controlFeedingActuator('ACT_PUMP_003', 'ON')" class="rounded-full bg-[#18191D] py-2.5 text-xs font-bold text-white hover:bg-zinc-800 transition shadow-2xs">POMPA ON</button>
+                                    <button id="pump2-off-btn" type="button" onclick="controlFeedingActuator('ACT_PUMP_003', 'OFF')" class="rounded-full bg-white py-2.5 text-xs font-bold text-zinc-700 hover:bg-zinc-100 transition border border-black/[0.06] shadow-2xs">POMPA OFF</button>
                                 </div>
                             </article>
                         </div>

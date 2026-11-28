@@ -27,8 +27,8 @@
 // =====================================================
 // KONFIGURASI WIFI & MQTT BROKER
 // =====================================================
-const char* WIFI_SSID     = "NAMA_WIFI_ANDA";
-const char* WIFI_PASSWORD = "PASSWORD_WIFI_ANDA";
+const char* WIFI_SSID     = "Samsung A17";
+const char* WIFI_PASSWORD = "Fyreablaze";
 
 // Arahkan ke IP Laptop/Server Backend Smart Farm (misal: "192.168.1.50")
 // atau gunakan broker publik seperti "broker.emqx.io"
