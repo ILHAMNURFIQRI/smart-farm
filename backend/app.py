@@ -21,6 +21,7 @@ from models import (
     DeviceCommand,
     FarmEvent,
     Group2Prediction,
+    RfidCard,
     SensorRegistry,
     Telemetry,
     as_utc,
@@ -506,6 +507,66 @@ def create_app(test_config=None):
             return jsonify({"error": {"code": "NOT_FOUND", "message": "Device not found"}}), 404
         return jsonify({"device_id": device.device_id, "config": device.config})
 
+    def normalize_rfid_uid(raw_uid):
+        if not isinstance(raw_uid, str):
+            raise ValidationError("uid must be a hex string (e.g. 73 82 A7 AA)")
+        cleaned = re.sub(r"[\s:-]+", "", raw_uid.strip().upper())
+        if not re.fullmatch(r"[0-9A-F]{8,32}", cleaned) or len(cleaned) % 2 != 0:
+            raise ValidationError("uid must be 4 to 16 hex bytes (e.g. 73 82 A7 AA)")
+        return " ".join(cleaned[i:i + 2] for i in range(0, len(cleaned), 2))
+
+    @app.get("/api/v1/rfid-cards")
+    def list_rfid_cards():
+        cards = RfidCard.query.order_by(RfidCard.created_at.desc()).all()
+        return jsonify({
+            "items": [
+                {
+                    "uid": card.uid,
+                    "label": card.label,
+                    "created_at": isoformat_utc(as_utc(card.created_at)),
+                }
+                for card in cards
+            ]
+        })
+
+    @app.post("/api/v1/rfid-cards")
+    def register_rfid_card():
+        auth_error = require_token("API_CONTROL_TOKEN")
+        if auth_error:
+            return auth_error
+        body = get_json_object()
+        uid = normalize_rfid_uid(body.get("uid"))
+        label = body.get("label") or "Kartu Peternak"
+        label = require_text(str(label), "label", 120)
+        card = db.session.get(RfidCard, uid)
+        created = card is None
+        if card is None:
+            card = RfidCard(uid=uid, label=label)
+            db.session.add(card)
+        else:
+            card.label = label
+        db.session.commit()
+        return jsonify({
+            "item": {
+                "uid": card.uid,
+                "label": card.label,
+                "created_at": isoformat_utc(as_utc(card.created_at)),
+            }
+        }), (201 if created else 200)
+
+    @app.delete("/api/v1/rfid-cards/<path:uid>")
+    def delete_rfid_card(uid):
+        auth_error = require_token("API_CONTROL_TOKEN")
+        if auth_error:
+            return auth_error
+        normalized = normalize_rfid_uid(uid)
+        card = db.session.get(RfidCard, normalized)
+        if card is None:
+            return jsonify({"error": {"code": "NOT_FOUND", "message": "RFID card not found"}}), 404
+        db.session.delete(card)
+        db.session.commit()
+        return "", 204
+
     @app.post("/api/v1/devices/<device_id>/commands")
     def issue_command(device_id):
         auth_error = require_token("API_CONTROL_TOKEN")
@@ -758,6 +819,13 @@ def create_app(test_config=None):
                     existing.actuator_metadata = actuator.actuator_metadata
                 else:
                     db.session.add(actuator)
+            default_cards = (
+                ("73 82 A7 AA", "Kartu Utama"),
+                ("05 81 15 B4 97 A2 00", "Kartu Cadangan"),
+            )
+            for uid, label in default_cards:
+                if db.session.get(RfidCard, uid) is None:
+                    db.session.add(RfidCard(uid=uid, label=label))
             db.session.commit()
         print("DEV_004, its sensors, and actuators are registered.")
 

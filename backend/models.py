@@ -141,3 +141,11 @@ class DeviceCommand(db.Model):
     ack_result = db.Column(db.String(16))
     actual_state = db.Column(db.JSON)
     ack_message = db.Column(db.String(500))
+
+
+class RfidCard(db.Model):
+    __tablename__ = "rfid_card"
+
+    uid = db.Column(db.String(64), primary_key=True)
+    label = db.Column(db.String(120), nullable=False, default="Kartu Peternak")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)

@@ -36,7 +36,8 @@
                     DEV_004: []
                 },
                 group2Latest: null,
-                events: []
+                events: [],
+                rfidCards: []
             };
         }
 
@@ -152,6 +153,29 @@
             return await this.request(`/api/v1/commands/${encodeURIComponent(commandId)}`);
         }
 
+        async getRfidCards() {
+            return await this.request('/api/v1/rfid-cards');
+        }
+
+        async addRfidCard(uid, label = 'Kartu Peternak') {
+            return await this.request('/api/v1/rfid-cards', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.controlToken}`
+                },
+                body: { uid, label }
+            });
+        }
+
+        async deleteRfidCard(uid) {
+            return await this.request(`/api/v1/rfid-cards/${encodeURIComponent(uid)}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.controlToken}`
+                }
+            });
+        }
+
         // Group 2 Endpoints
         async getGroup2Latest() {
             return await this.request('/api/sensors/latest');
@@ -190,11 +214,12 @@
                 }
 
                 // Fetch core dashboard data in parallel
-                const [summaryRes, devicesRes, eventsRes, g2Res] = await Promise.allSettled([
+                const [summaryRes, devicesRes, eventsRes, g2Res, rfidRes] = await Promise.allSettled([
                     this.getSummary(),
                     this.getDevices(),
                     this.getEvents({ per_page: 15 }),
-                    this.getGroup2Latest()
+                    this.getGroup2Latest(),
+                    this.getRfidCards()
                 ]);
 
                 if (summaryRes.status === 'fulfilled') {
@@ -213,6 +238,10 @@
 
                 if (g2Res.status === 'fulfilled') {
                     this.state.group2Latest = g2Res.value;
+                }
+
+                if (rfidRes.status === 'fulfilled' && rfidRes.value.items) {
+                    this.state.rfidCards = rfidRes.value.items;
                 }
 
                 // Telemetry for active devices
