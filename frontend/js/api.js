@@ -36,13 +36,14 @@
                     DEV_004: []
                 },
                 group2Latest: null,
+                events: [],
+                rfidCards: [],
                 group2History: [],
                 kandangStatus: null,
                 kandangRecoveryHistory: null,
                 kandangEarlyWarning: null,
                 kandangAutomation: null,
-                kandangSanitation: [],
-                events: []
+                kandangSanitation: []
             };
         }
 
@@ -158,6 +159,29 @@
             return await this.request(`/api/v1/commands/${encodeURIComponent(commandId)}`);
         }
 
+        async getRfidCards() {
+            return await this.request('/api/v1/rfid-cards');
+        }
+
+        async addRfidCard(uid, label = 'Kartu Peternak') {
+            return await this.request('/api/v1/rfid-cards', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${this.controlToken}`
+                },
+                body: { uid, label }
+            });
+        }
+
+        async deleteRfidCard(uid) {
+            return await this.request(`/api/v1/rfid-cards/${encodeURIComponent(uid)}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${this.controlToken}`
+                }
+            });
+        }
+
         // Group 2 (Moo-nitoring Kandang) Endpoints
         async getGroup2Latest() {
             return await this.request('/api/sensors/latest');
@@ -235,6 +259,7 @@
                     devicesRes,
                     eventsRes,
                     g2Res,
+                    rfidRes,
                     kandangStatusRes,
                     kandangRecRes,
                     kandangAutoRes,
@@ -245,6 +270,7 @@
                     this.getDevices(),
                     this.getEvents({ per_page: 15 }),
                     this.getGroup2Latest(),
+                    this.getRfidCards(),
                     this.getKandangStatus(),
                     this.getKandangRecoveryHistory(),
                     this.getKandangAutomation(),
@@ -268,6 +294,10 @@
 
                 if (g2Res.status === 'fulfilled') {
                     this.state.group2Latest = g2Res.value;
+                }
+
+                if (rfidRes.status === 'fulfilled' && rfidRes.value.items) {
+                    this.state.rfidCards = rfidRes.value.items;
                 }
 
                 if (kandangStatusRes.status === 'fulfilled') {

@@ -143,6 +143,14 @@ class DeviceCommand(db.Model):
     ack_message = db.Column(db.String(500))
 
 
+class RfidCard(db.Model):
+    __tablename__ = "rfid_card"
+
+    uid = db.Column(db.String(64), primary_key=True)
+    label = db.Column(db.String(120), nullable=False, default="Kartu Peternak")
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+
 class BarnRecoveryLog(db.Model):
     __tablename__ = "barn_recovery_log"
 
@@ -177,4 +185,3 @@ class SanitationLog(db.Model):
     status = db.Column(db.String(32), nullable=False, default="SELESAI", index=True)
     notes = db.Column(db.String(500))
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
-
